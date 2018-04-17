@@ -180,7 +180,7 @@ switchuvm(struct proc *p)
 // Load the initcode into address 0 of pgdir.
 // sz must be less than a page.
 void
-inituvm(pde_t *pgdir, char *init, uint sz)
+inituvm(pde_t *pgdir, char *init, uint sz)// 把 initcode.bin 从高地址copy到0地址因为 initcode.bin 的vstart是0
 {
   char *mem;
 

@@ -73,7 +73,7 @@ startothers(void)
   // Write entry code to unused memory at 0x7000.
   // The linker has placed the image of entryother.S in
   code = P2V(0x7000);
-  memmove(code, _binary_entryother_start, (uint)_binary_entryother_size);// entryother.bin 这段代码写到物理内存0x7000处
+  memmove(code, _binary_entryother_start, (uint)_binary_entryother_size);// entryother.bin 这段代码写到物理内存0x7000处 因为 entryother.bin 的vstart是0x7000
 
   for(c = cpus; c < cpus+ncpu; c++){
     if(c == mycpu())  // We've started already.

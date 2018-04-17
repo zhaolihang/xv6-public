@@ -8,11 +8,11 @@
 # exec(init, argv)
 .globl start
 start:
-  pushl $argv
-  pushl $init
+  pushl $argv   ; below      .long init   .long 0
+  pushl $init     ; below     .string "/init\0"
   pushl $0  // where caller pc would be
   movl $SYS_exec, %eax
-  int $T_SYSCALL
+  int $T_SYSCALL   ;系统调用
 
 # for(;;) exit();
 exit:

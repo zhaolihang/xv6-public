@@ -34,7 +34,7 @@ idtinit(void)
 
 //PAGEBREAK: 41
 void
-trap(struct trapframe *tf)
+trap(struct trapframe *tf)//  所有的中断都会调这个
 {
   if(tf->trapno == T_SYSCALL){
     if(myproc()->killed)

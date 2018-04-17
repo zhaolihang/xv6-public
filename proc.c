@@ -42,7 +42,7 @@ mycpu(void)
   if(readeflags()&FL_IF)
     panic("mycpu called with interrupts enabled\n");
   
-  apicid = lapicid();
+  apicid = lapicid(); // 先找到 apicid  在后在cpus表中搜索与apicid匹配的cpu数据
   // APIC IDs are not guaranteed to be contiguous. Maybe we should have
   // a reverse map, or reserve a register to store &cpus[i].
   for (i = 0; i < ncpu; ++i) {
@@ -86,31 +86,37 @@ allocproc(void)
   return 0;
 
 found:
-  p->state = EMBRYO;
+  p->state = EMBRYO;  //embryo  胚芽; <生>胚，胚胎; 初期
   p->pid = nextpid++;
 
   release(&ptable.lock);
 
   // Allocate kernel stack.
-  if((p->kstack = kalloc()) == 0){
-    p->state = UNUSED;
+  if((p->kstack = kalloc()) == 0){//分配一个4k的空闲内存作为内核栈
+    p->state = UNUSED;// 栈空间分配失败返还这个结构体
     return 0;
   }
-  sp = p->kstack + KSTACKSIZE;
+  sp = p->kstack + KSTACKSIZE; // 栈顶
 
+{
   // Leave room for trap frame.
-  sp -= sizeof *p->tf;
-  p->tf = (struct trapframe*)sp;
+  sp -= sizeof *p->tf; // 预留 一个 trapframe 空间
+  p->tf = (struct trapframe*)sp; //proc结构体中记录下trapframe的地址
+}
 
+{
   // Set up new context to start executing at forkret,
   // which returns to trapret.
-  sp -= 4;
-  *(uint*)sp = (uint)trapret;
+  sp -= 4;  // 预留 返回点
+  *(uint*)sp = (uint)trapret;// 中断返回点地址
+}
 
+{
   sp -= sizeof *p->context;
-  p->context = (struct context*)sp;
-  memset(p->context, 0, sizeof *p->context);
-  p->context->eip = (uint)forkret;
+  p->context = (struct context*)sp; // 预留 一个 context 空间 
+  memset(p->context, 0, sizeof *p->context);// 初始化context空间为0
+  p->context->eip = (uint)forkret;  // fork 返回点地址
+}
 
   return p;
 }
@@ -121,26 +127,27 @@ void
 userinit(void)
 {
   struct proc *p;
+  //  _binary_initcode_start  _binary_initcode_size 是ld中把initcode.S文件编译成的二进制放在内核文件标号_binary_initcode_start处  
   extern char _binary_initcode_start[], _binary_initcode_size[];
 
   p = allocproc();
   
   initproc = p;
-  if((p->pgdir = setupkvm()) == 0)
+  if((p->pgdir = setupkvm()) == 0)//分配一个内核预置的页目录表
     panic("userinit: out of memory?");
-  inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
-  p->sz = PGSIZE;
-  memset(p->tf, 0, sizeof(*p->tf));
+  inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size); // 在刚刚分配的页目录表中初始化initcode.bin 
+  p->sz = PGSIZE;// 进程使用的内存大小
+  memset(p->tf, 0, sizeof(*p->tf));// 初始化 trapframe
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
   p->tf->es = p->tf->ds;
   p->tf->ss = p->tf->ds;
   p->tf->eflags = FL_IF;
-  p->tf->esp = PGSIZE;
-  p->tf->eip = 0;  // beginning of initcode.S
+  p->tf->esp = PGSIZE; // 把initcode.bin 为使用的内存作为栈
+  p->tf->eip = 0;  // beginning of initcode.S   指令指针在0处执行
 
-  safestrcpy(p->name, "initcode", sizeof(p->name));
-  p->cwd = namei("/");
+  safestrcpy(p->name, "initcode", sizeof(p->name));// 设置进程名字
+  p->cwd = namei("/");//设置进程工作目录  需要inode的知识
 
   // this assignment to p->state lets other cores
   // run this process. the acquire forces the above
@@ -148,7 +155,7 @@ userinit(void)
   // because the assignment might not be atomic.
   acquire(&ptable.lock);
 
-  p->state = RUNNABLE;
+  p->state = RUNNABLE;//  设置成 RUNNABLE 状态 , 好让schedule()函数调度
 
   release(&ptable.lock);
 }

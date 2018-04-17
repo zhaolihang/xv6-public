@@ -28,7 +28,7 @@ main(void)
   uartinit();      // serial port  // 打开 串口
   pinit();         // process table 初始化进程表的锁
   tvinit();        // trap vectors  初始化设置中断向量表,cpu并没有加载到idtr中
-  binit();         // buffer cache  // 初始化io的缓冲区
+  binit();         // buffer cache  // 初始化io的环形缓冲区
   fileinit();      // file table
   ideinit();       // disk 
   startothers();   // start other processors

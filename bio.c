@@ -43,10 +43,12 @@ binit(void)
   initlock(&bcache.lock, "bcache");
 
 //PAGEBREAK!
-  // Create linked list of buffers
-  bcache.head.prev = &bcache.head;
+  // Create linked list of buffers  
+
+  // head <=> head  插入new  head <=> new <=> head
+  bcache.head.prev = &bcache.head;// 自己链接自己形成一个环 双向链表的初始化
   bcache.head.next = &bcache.head;
-  for(b = bcache.buf; b < bcache.buf+NBUF; b++){
+  for(b = bcache.buf; b < bcache.buf+NBUF; b++){//  在环的开头打开一个口插入一个再接上 已然还是一个环
     b->next = bcache.head.next;
     b->prev = &bcache.head;
     initsleeplock(&b->lock, "buffer");

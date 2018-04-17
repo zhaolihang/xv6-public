@@ -11,12 +11,12 @@
 #include "mmu.h"
 #include "proc.h"
 
-struct cpu cpus[NCPU];
+struct cpu cpus[NCPU];//8个核心
 int ncpu;
 uchar ioapicid;
 
 static uchar
-sum(uchar *addr, int len)
+sum(uchar *addr, int len)// 校验和
 {
   int i, sum;
 
@@ -89,7 +89,7 @@ mpconfig(struct mp **pmp)
 }
 
 void
-mpinit(void)
+mpinit(void)// 获取 ioapicid 并且获取每个cpu的apic id 存放带相应的结构体中
 {
   uchar *p, *e;
   int ismp;

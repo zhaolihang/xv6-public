@@ -102,7 +102,7 @@ lapicid(void)
 {
   if (!lapic)
     return 0;
-  return lapic[ID] >> 24;
+  return lapic[ID] >> 24;// 内存映射的寄存器 所以每个cpu获取的都是自己的lapic id
 }
 
 // Acknowledge interrupt.

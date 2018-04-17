@@ -15,14 +15,14 @@
 void readseg(uchar*, uint, uint);
 
 void
-bootmain(void)
+bootmain(void) // 加载内核到0x10000 并进入内核
 {
   struct elfhdr *elf;
   struct proghdr *ph, *eph;
   void (*entry)(void);
   uchar* pa;
 
-  elf = (struct elfhdr*)0x10000;  // scratch space
+  elf = (struct elfhdr*)0x10000;  // scratch space  1m以后
 
   // Read 1st page off disk
   readseg((uchar*)elf, 4096, 0);
@@ -37,13 +37,13 @@ bootmain(void)
   for(; ph < eph; ph++){
     pa = (uchar*)ph->paddr;
     readseg(pa, ph->filesz, ph->off);
-    if(ph->memsz > ph->filesz)
+    if(ph->memsz > ph->filesz) // 初始化未 预留的数据段
       stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz);
   }
 
   // Call the entry point from the ELF header.
   // Does not return!
-  entry = (void(*)(void))(elf->entry);
+  entry = (void(*)(void))(elf->entry);  // entry.S
   entry();
 }
 

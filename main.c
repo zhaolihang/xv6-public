@@ -9,7 +9,7 @@
 static void startothers(void);
 static void mpmain(void)  __attribute__((noreturn));
 extern pde_t *kpgdir;
-extern char end[]; // first address after kernel loaded from ELF file
+extern char end[]; // first address after kernel loaded from ELF file  定义在 kernel.ld 中全局标签 代表整个内核文件的末尾
 
 // Bootstrap processor starts running C code here.
 // Allocate a real stack and switch to it, first
@@ -17,18 +17,18 @@ extern char end[]; // first address after kernel loaded from ELF file
 int
 main(void)
 {
-  kinit1(end, P2V(4*1024*1024)); // phys page allocator
-  kvmalloc();      // kernel page table
+  kinit1(end, P2V(4*1024*1024)); // phys page allocator   将 end~0x80000000+4*1024*1024 的内存每4k加入到内核内存空闲列表中 现在只有不到4m的内存
+  kvmalloc();      // kernel page table  // 分配并切换到内核页表
   mpinit();        // detect other processors
-  lapicinit();     // interrupt controller
-  seginit();       // segment descriptors
-  picinit();       // disable pic
-  ioapicinit();    // another interrupt controller
-  consoleinit();   // console hardware
-  uartinit();      // serial port
-  pinit();         // process table
-  tvinit();        // trap vectors
-  binit();         // buffer cache
+  lapicinit();     // interrupt controller 配置本地中断
+  seginit();       // segment descriptors  // 设置当前cpu的gdt
+  picinit();       // disable pic  禁用8259中断
+  ioapicinit();    // another interrupt controller 配置io中断
+  consoleinit();   // console hardware// 绑定 读写函数指针 开启键盘中断
+  uartinit();      // serial port  // 打开 串口
+  pinit();         // process table 初始化进程表的锁
+  tvinit();        // trap vectors  初始化设置中断向量表,cpu并没有加载到idtr中
+  binit();         // buffer cache  // 初始化io的缓冲区
   fileinit();      // file table
   ideinit();       // disk 
   startothers();   // start other processors
@@ -54,7 +54,7 @@ mpmain(void)
   cprintf("cpu%d: starting %d\n", cpuid(), cpuid());
   idtinit();       // load idt register
   xchg(&(mycpu()->started), 1); // tell startothers() we're up
-  scheduler();     // start running processes
+  scheduler();     // start running processes  // 在这里开启中断
 }
 
 pde_t entrypgdir[];  // For entry.S
@@ -89,7 +89,7 @@ startothers(void)
     lapicstartap(c->apicid, V2P(code));
 
     // wait for cpu to finish mpmain()
-    while(c->started == 0)
+    while(c->started == 0)//等待该核心启动完成后继续初始化下一个核心
       ;
   }
 }

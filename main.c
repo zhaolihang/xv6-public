@@ -29,21 +29,22 @@ main(void)
   pinit();         // process table 初始化进程表的锁
   tvinit();        // trap vectors  初始化设置中断向量表,cpu并没有加载到idtr中
   binit();         // buffer cache  // 初始化io的环形缓冲区
-  fileinit();      // file table
-  ideinit();       // disk 
-  startothers();   // start other processors
-  kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()
-  userinit();      // first user process
-  mpmain();        // finish this processor's setup
+  fileinit();      // file table  初始化文件表的锁
+  ideinit();       // disk 初始化硬盘  并且打开ide中断
+  startothers();   // start other processors   //启动其他cpu 并进入scheduler 函数
+  kinit2(P2V(4*1024*1024), P2V(PHYSTOP)); // must come after startothers()  // 初始化其他的空闲内存
+  userinit();      // first user process 在进程表中加入第一个用户进程  很重要！！！！！！！！！！！！！！！！！！！！！！！！！
+  mpmain();        // finish this processor's setup  finish bsp cpu 然后执行scheduler 函数
 }
 
 // Other CPUs jump here from entryother.S.
 static void
-mpenter(void)
+mpenter(void)// entryother.S 调用这里 但是使用了临时的pgdirtable
 {
-  switchkvm();
-  seginit();
-  lapicinit();
+  //  kvmalloc();    不需要再分配了因为整个内核使用一份数据 在上面已经初始化过了
+  switchkvm();// 切换到 内核的页目录表
+  seginit();// 初始化当前cpu的gdt
+  lapicinit();// 初始化当前cpu的lapic
   mpmain();
 }
 
@@ -52,9 +53,9 @@ static void
 mpmain(void)
 {
   cprintf("cpu%d: starting %d\n", cpuid(), cpuid());
-  idtinit();       // load idt register
-  xchg(&(mycpu()->started), 1); // tell startothers() we're up
-  scheduler();     // start running processes  // 在这里开启中断
+  idtinit();       // load idt register 加载中断向量表
+  xchg(&(mycpu()->started), 1); //  tell bsp cpu's startothers() we're up
+  scheduler();     // start running processes  // 当前cpu的中断 会在scheduler里面开启
 }
 
 pde_t entrypgdir[];  // For entry.S
@@ -63,6 +64,7 @@ pde_t entrypgdir[];  // For entry.S
 static void
 startothers(void)
 {
+  //  _binary_entryother_start  _binary_entryother_size 是ld中把entryother.S文件编译成的二进制放在内核文件标号_binary_entryother_start处
   extern uchar _binary_entryother_start[], _binary_entryother_size[];
   uchar *code;
   struct cpu *c;
@@ -70,9 +72,8 @@ startothers(void)
 
   // Write entry code to unused memory at 0x7000.
   // The linker has placed the image of entryother.S in
-  // _binary_entryother_start.
   code = P2V(0x7000);
-  memmove(code, _binary_entryother_start, (uint)_binary_entryother_size);
+  memmove(code, _binary_entryother_start, (uint)_binary_entryother_size);// entryother.bin 这段代码写到物理内存0x7000处
 
   for(c = cpus; c < cpus+ncpu; c++){
     if(c == mycpu())  // We've started already.
@@ -81,12 +82,12 @@ startothers(void)
     // Tell entryother.S what stack to use, where to enter, and what
     // pgdir to use. We cannot use kpgdir yet, because the AP processor
     // is running in low  memory, so we use entrypgdir for the APs too.
-    stack = kalloc();
-    *(void**)(code-4) = stack + KSTACKSIZE;
-    *(void**)(code-8) = mpenter;
-    *(int**)(code-12) = (void *) V2P(entrypgdir);
+    stack = kalloc(); //  分配4K的栈  stack是栈最低地址处
+    *(void**)(code-4) = stack + KSTACKSIZE;// ap使用在内存中分配的栈 ，最高地址处即当前的栈顶
+    *(void**)(code-8) = mpenter;// ap cpu的高地址c代码
+    *(int**)(code-12) = (void *) V2P(entrypgdir);// ap cpu 初始的页目录表物理地址
 
-    lapicstartap(c->apicid, V2P(code));
+    lapicstartap(c->apicid, V2P(code));// bsp cpu send message to ap cpu by IPI , CPU之间通信
 
     // wait for cpu to finish mpmain()
     while(c->started == 0)//等待该核心启动完成后继续初始化下一个核心

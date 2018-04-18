@@ -19,13 +19,14 @@ main(void)
 {
   kinit1(end, P2V(4*1024*1024)); // phys page allocator   将 end~0x80000000+4*1024*1024 的内存每4k加入到内核内存空闲列表中 现在只有不到4m的内存
   kvmalloc();      // kernel page table  // 分配并切换到内核页表
-  mpinit();        // detect other processors
-  lapicinit();     // interrupt controller 配置本地中断
+  switchkvm();     // 立即使用该页表 lcr3
+  mpinit();        // detect other processors  // smp架构获取其他cpu的信息
+  lapicinit();     // interrupt controller 配置本地中断控制器
   seginit();       // segment descriptors  // 设置当前cpu的gdt
   picinit();       // disable pic  禁用8259中断
-  ioapicinit();    // another interrupt controller 配置io中断
+  ioapicinit();    // another interrupt controller 配置io中断控制器
   consoleinit();   // console hardware// 绑定 读写函数指针 开启键盘中断
-  uartinit();      // serial port  // 打开 串口
+  uartinit();      // serial port  // 打开串口 可能是显示器的数据口
   pinit();         // process table 初始化进程表的锁
   tvinit();        // trap vectors  初始化设置中断向量表,cpu并没有加载到idtr中
   binit();         // buffer cache  // 初始化io的环形缓冲区
@@ -42,7 +43,7 @@ static void
 mpenter(void)// entryother.S 调用这里 但是使用了临时的pgdirtable
 {
   //  kvmalloc();    不需要再分配了因为整个内核使用一份数据 在上面已经初始化过了
-  switchkvm();// 切换到 内核的页目录表
+  switchkvm();// 切换到 内核的页目录表 lcr3
   seginit();// 初始化当前cpu的gdt
   lapicinit();// 初始化当前cpu的lapic
   mpmain();
@@ -53,7 +54,7 @@ static void
 mpmain(void)
 {
   cprintf("cpu%d: starting %d\n", cpuid(), cpuid());
-  idtinit();       // load idt register 加载中断向量表
+  idtinit();   // lidt load idt register 加载中断向量表
   xchg(&(mycpu()->started), 1); //  tell bsp cpu's startothers() we're up
   scheduler();     // start running processes  // 当前cpu的中断 会在scheduler里面开启
 }

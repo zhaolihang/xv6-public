@@ -67,4 +67,4 @@ entry:
   mov $main, %eax; 跳转到高地址中执行 main.c
   jmp *%eax
 
-.comm stack, KSTACKSIZE  ; bsp 使用的内核栈
+.comm stack, KSTACKSIZE  ; bsp 使用的内核栈 在内核文件中预留的4k栈

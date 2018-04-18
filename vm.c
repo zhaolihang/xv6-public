@@ -141,7 +141,6 @@ void
 kvmalloc(void)
 {
   kpgdir = setupkvm();// 分配生成完整的页目录表 和页表  并保存为全局变量 kpgdir
-  switchkvm();// 立即使用该页表
 }
 
 // Switch h/w page table register to the kernel-only page table,

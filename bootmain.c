@@ -37,13 +37,13 @@ bootmain(void) // 加载内核到0x10000 并进入内核
   for(; ph < eph; ph++){
     pa = (uchar*)ph->paddr;
     readseg(pa, ph->filesz, ph->off);
-    if(ph->memsz > ph->filesz) // 初始化未 预留的数据段
+    if(ph->memsz > ph->filesz) // 初始化 预留的数据段 或由于对齐 空着的无效数据
       stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz);
   }
 
   // Call the entry point from the ELF header.
   // Does not return!
-  entry = (void(*)(void))(elf->entry);  // entry.S
+  entry = (void(*)(void))(elf->entry);  // entry.S low address
   entry();
 }
 

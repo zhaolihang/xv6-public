@@ -1,3 +1,4 @@
+## make参数“-n”或“--just-print”，那么其只是显示命令，但不会执行命令，这个功能很有利于我们调试我们的Makefile
 OBJS = \
 	bio.o\
 	console.o\
@@ -83,7 +84,7 @@ ASFLAGS = -m32 -gdwarf-2 -Wa,-divide
 # FreeBSD ld wants ``elf_i386_fbsd''
 LDFLAGS += -m $(shell $(LD) -V | grep elf_i386 2>/dev/null | head -n 1)
 
-xv6.img: bootblock kernel fs.img
+xv6.img: bootblock kernel fs.img   #执行make 会默认生成第一个目标
 	dd if=/dev/zero of=xv6.img count=10000
 	dd if=bootblock of=xv6.img conv=notrunc
 	dd if=kernel of=xv6.img seek=1 conv=notrunc
@@ -178,7 +179,7 @@ UPROGS=\
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
 
--include *.d
+-include *.d # 就算*.d 文件找不到也不报错 下次编译使用上次生成的.d文件加快依赖分析
 
 clean: 
 	rm -f *.tex *.dvi *.idx *.aux *.log *.ind *.ilg \

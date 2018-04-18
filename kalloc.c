@@ -47,7 +47,7 @@ void
 freerange(void *vstart, void *vend)
 {
   char *p;
-  p = (char*)PGROUNDUP((uint)vstart);
+  p = (char*)PGROUNDUP((uint)vstart);//p2align
   for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
     kfree(p);
 }
@@ -71,7 +71,7 @@ kfree(char *v)
     acquire(&kmem.lock);
   r = (struct run*)v;
   r->next = kmem.freelist;
-  kmem.freelist = r;
+  kmem.freelist = r;// 插入到单项链表的开头
   if(kmem.use_lock)
     release(&kmem.lock);
 }

@@ -108,7 +108,7 @@ found:
   // Set up new context to start executing at forkret,
   // which returns to trapret.
   sp -= 4;  // 预留 返回点
-  *(uint*)sp = (uint)trapret;// 中断返回点地址
+  *(uint*)sp = (uint)trapret;// 中断返回点地址  forkret 会返回到trapret 去执行 然后 trapret执行一个iret 模拟中断返回从特权机0切换到3 进行任务 
 }
 
 {
@@ -143,7 +143,7 @@ userinit(void)
   p->tf->es = p->tf->ds;
   p->tf->ss = p->tf->ds;
   p->tf->eflags = FL_IF;
-  p->tf->esp = PGSIZE; // 把initcode.bin 为使用的内存作为栈
+  p->tf->esp = PGSIZE; // 把initcode.bin 未使用4k边界做为用户栈
   p->tf->eip = 0;  // beginning of initcode.S   指令指针在0处执行
 
   safestrcpy(p->name, "initcode", sizeof(p->name));// 设置进程名字
@@ -155,7 +155,7 @@ userinit(void)
   // because the assignment might not be atomic.
   acquire(&ptable.lock);
 
-  p->state = RUNNABLE;//  设置成 RUNNABLE 状态 , 好让schedule()函数调度
+  p->state = RUNNABLE;//  设置成 RUNNABLE(就绪态) 状态 , 好让schedule()函数调度
 
   release(&ptable.lock);
 }
@@ -331,14 +331,14 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
-  c->proc = 0;
+  c->proc = 0; // 当前cpu 没有进程
   
   for(;;){
     // Enable interrupts on this processor.
-    sti();
+    sti();// 开中断
 
     // Loop over process table looking for process to run.
-    acquire(&ptable.lock);
+    acquire(&ptable.lock);// 临界区
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
@@ -346,12 +346,13 @@ scheduler(void)
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
+      c->proc = p; // cpu 当前的进程是p
+      switchuvm(p);// 切换成用户的虚拟内存 并加载p 的tss 到tr 中 因为 中断的时候切换到内核需要使用0特权级的栈 由硬件完成 所以不可能绕过tss
+      p->state = RUNNING;// 选择一个可运行的RUNNABLE(就绪态) 的进程 ,运行 切换到 运行态(RUNNING)
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+      swtch(&(c->scheduler), p->context);// 切换到 p 运行 汇编代码swtch.S中 
+      // p  return 
+      switchkvm(); // p 被剥夺 继续执行 先切换回内核空间 这时tr中仍然是p 的tss
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.
@@ -405,7 +406,7 @@ forkret(void)
 {
   static int first = 1;
   // Still holding ptable.lock from scheduler.
-  release(&ptable.lock);
+  release(&ptable.lock);// 释放scheduler中持有的锁
 
   if (first) {
     // Some initialization functions must be run in the context

@@ -25,11 +25,11 @@ extern int ncpu;
 // at the "Switch stacks" comment. Switch doesn't save eip explicitly,
 // but it is on the stack and allocproc() manipulates it.
 struct context {
-  uint edi;
+  uint edi;// 低地址 在栈顶
   uint esi;
   uint ebx;
   uint ebp;
-  uint eip;
+  uint eip;// 高地址 在栈底
 };
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };

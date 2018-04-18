@@ -165,15 +165,15 @@ switchuvm(struct proc *p)
 
   pushcli();
   mycpu()->gdt[SEG_TSS] = SEG16(STS_T32A, &mycpu()->ts,
-                                sizeof(mycpu()->ts)-1, 0);
+                                sizeof(mycpu()->ts)-1, 0);  // 初始化 tss
   mycpu()->gdt[SEG_TSS].s = 0;
   mycpu()->ts.ss0 = SEG_KDATA << 3;
-  mycpu()->ts.esp0 = (uint)p->kstack + KSTACKSIZE;
+  mycpu()->ts.esp0 = (uint)p->kstack + KSTACKSIZE; // 特权级的栈
   // setting IOPL=0 in eflags *and* iomb beyond the tss segment limit
   // forbids I/O instructions (e.g., inb and outb) from user space
-  mycpu()->ts.iomb = (ushort) 0xFFFF;
-  ltr(SEG_TSS << 3);
-  lcr3(V2P(p->pgdir));  // switch to process's address space
+  mycpu()->ts.iomb = (ushort) 0xFFFF;// 没有io开放
+  ltr(SEG_TSS << 3); // 任务标志tss 加载到 tr中
+  lcr3(V2P(p->pgdir));  // switch to process's address space  // 切换 cr3 页目录表
   popcli();
 }
 

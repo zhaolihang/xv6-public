@@ -133,18 +133,18 @@ userinit(void)
   p = allocproc();
   
   initproc = p;
-  if((p->pgdir = setupkvm()) == 0)//分配一个内核预置的页目录表
+  if((p->pgdir = alloc_kvm_pgdir()) == 0)//分配一个内核预置的页目录表
     panic("userinit: out of memory?");
-  inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size); // 在刚刚分配的页目录表中初始化initcode.bin 
+  init_initcode_uvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size); // 在刚刚分配的页目录表中初始化initcode.bin 
   p->sz = PGSIZE;// 进程使用的内存大小
   memset(p->tf, 0, sizeof(*p->tf));// 初始化 trapframe
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
   p->tf->es = p->tf->ds;
   p->tf->ss = p->tf->ds;
-  p->tf->eflags = FL_IF;
-  p->tf->esp = PGSIZE; // 把initcode.bin 未使用4k边界做为用户栈
-  p->tf->eip = 0;  // beginning of initcode.S   指令指针在0处执行
+  p->tf->eflags = FL_IF; // 开启中断 
+  p->tf->esp = PGSIZE; // 把initcode.bin 未使用的4k边界做为用户栈 没有单独分配用户栈
+  p->tf->eip = 0;  // beginning of initcode.S   指令指针在0处执行 trapret 返回的地方
 
   safestrcpy(p->name, "initcode", sizeof(p->name));// 设置进程名字
   p->cwd = namei("/");//设置进程工作目录  需要inode的知识
@@ -177,7 +177,7 @@ growproc(int n)
       return -1;
   }
   curproc->sz = sz;
-  switchuvm(curproc);
+  switch2uvm(curproc);
   return 0;
 }
 
@@ -327,7 +327,7 @@ wait(void)
 //  - eventually that process transfers control
 //      via swtch back to the scheduler.
 void
-scheduler(void)
+scheduler(void) // no return
 {
   struct proc *p;
   struct cpu *c = mycpu();
@@ -347,12 +347,13 @@ scheduler(void)
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
       c->proc = p; // cpu 当前的进程是p
-      switchuvm(p);// 切换成用户的虚拟内存 并加载p 的tss 到tr 中 因为 中断的时候切换到内核需要使用0特权级的栈 由硬件完成 所以不可能绕过tss
+      switch2uvm(p);// 切换成用户的虚拟内存 并加载p 的tss 到tr 中 因为 中断的时候切换到内核需要使用0特权级的栈 由硬件完成 所以不可能绕过tss
       p->state = RUNNING;// 选择一个可运行的RUNNABLE(就绪态) 的进程 ,运行 切换到 运行态(RUNNING)
 
-      swtch(&(c->scheduler), p->context);// 切换到 p 运行 汇编代码swtch.S中 
-      // p  return 
-      switchkvm(); // p 被剥夺 继续执行 先切换回内核空间 这时tr中仍然是p 的tss
+      // = call swtch : push p->context ; push &(c->scheduler) ; push eip ; movl swtch eip
+      swtch(&(c->scheduler), p->context);// 切换到 进程 运行p 运行 汇编代码swtch.S中   
+      // p  return point
+      switch2kvm(); // p 被剥夺 继续执行 先切换回内核空间 这时tr中仍然是p 的tss
 
       // Process is done running for now.
       // It should have changed its p->state before coming back.

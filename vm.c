@@ -85,7 +85,7 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 // page protection bits prevent user code from using the kernel's
 // mappings.
 //
-// setupkvm() and exec() set up every page table like this:
+// alloc_kvm_pgdir() and exec() set up every page table like this:
 //
 //   0..KERNBASE: user memory (text+data+stack+heap), mapped to
 //                phys memory allocated by the kernel
@@ -116,7 +116,7 @@ static struct kmap {
 
 // Set up kernel part of a page table.
 pde_t*
-setupkvm(void)
+alloc_kvm_pgdir(void)
 {
   pde_t *pgdir;
   struct kmap *k;
@@ -138,53 +138,53 @@ setupkvm(void)
 // Allocate one page table for the machine for the kernel address
 // space for scheduler processes.
 void
-kvmalloc(void)
+initk_kvm_pgdir(void)
 {
-  kpgdir = setupkvm();// 分配生成完整的页目录表 和页表  并保存为全局变量 kpgdir
+  kpgdir = alloc_kvm_pgdir();// 分配生成完整的页目录表 和页表  并保存为全局变量 kpgdir
 }
 
 // Switch h/w page table register to the kernel-only page table,
 // for when no process is running.
 void
-switchkvm(void)
+switch2kvm(void)
 {
   lcr3(V2P(kpgdir));   // switch to the kernel page table
 }
 
 // Switch TSS and h/w page table to correspond to process p.
 void
-switchuvm(struct proc *p)
+switch2uvm(struct proc *p)// set ltr  and  lcr3
 {
   if(p == 0)
-    panic("switchuvm: no process");
+    panic("switch2uvm: no process");
   if(p->kstack == 0)
-    panic("switchuvm: no kstack");
+    panic("switch2uvm: no kstack");
   if(p->pgdir == 0)
-    panic("switchuvm: no pgdir");
+    panic("switch2uvm: no pgdir");
 
   pushcli();
-  mycpu()->gdt[SEG_TSS] = SEG16(STS_T32A, &mycpu()->ts,
-                                sizeof(mycpu()->ts)-1, 0);  // 初始化 tss
+  mycpu()->gdt[SEG_TSS] = SEG16(STS_T32A, &mycpu()->tss,
+                                sizeof(mycpu()->tss)-1, 0);  // 初始化 tss
   mycpu()->gdt[SEG_TSS].s = 0;
-  mycpu()->ts.ss0 = SEG_KDATA << 3;
-  mycpu()->ts.esp0 = (uint)p->kstack + KSTACKSIZE; // 特权级的栈
+  mycpu()->tss.ss0 = SEG_KDATA << 3;
+  mycpu()->tss.esp0 = (uint)p->kstack + KSTACKSIZE; // 特权级的栈 用户空间发生中断的时候用
   // setting IOPL=0 in eflags *and* iomb beyond the tss segment limit
   // forbids I/O instructions (e.g., inb and outb) from user space
-  mycpu()->ts.iomb = (ushort) 0xFFFF;// 没有io开放
+  mycpu()->tss.iomb = (ushort) 0xFFFF;// 没有io开放
   ltr(SEG_TSS << 3); // 任务标志tss 加载到 tr中
-  lcr3(V2P(p->pgdir));  // switch to process's address space  // 切换 cr3 页目录表
+  lcr3(V2P(p->pgdir));  // switch to process's address space  // 加载cr3 用户的页目录表
   popcli();
 }
 
 // Load the initcode into address 0 of pgdir.
 // sz must be less than a page.
 void
-inituvm(pde_t *pgdir, char *init, uint sz)// 把 initcode.bin 从高地址copy到0地址因为 initcode.bin 的vstart是0
+init_initcode_uvm(pde_t *pgdir, char *init, uint sz)// 把 initcode.bin 从高地址copy到0地址因为 initcode.bin 的vstart是0
 {
   char *mem;
 
-  if(sz >= PGSIZE)
-    panic("inituvm: more than a page");
+  if(sz >= PGSIZE)//不能大于4k
+    panic("init_initcode_uvm: more than a page");
   mem = kalloc();
   memset(mem, 0, PGSIZE);
   mappages(pgdir, 0, PGSIZE, V2P(mem), PTE_W|PTE_U);
@@ -319,7 +319,7 @@ copyuvm(pde_t *pgdir, uint sz)
   uint pa, i, flags;
   char *mem;
 
-  if((d = setupkvm()) == 0)
+  if((d = alloc_kvm_pgdir()) == 0)
     return 0;
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0)

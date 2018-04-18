@@ -12,8 +12,8 @@
 ;push eip ;call 调用段内转移压如eip
 .globl swtch
 swtch:
-  movl 4(%esp), %eax ;context **old
-  movl 8(%esp), %edx ;context *new
+  movl 4(%esp), %eax ; &(c->scheduler)
+  movl 8(%esp), %edx ;  p->context
 
   # Save old callee-save registers
   pushl %ebp

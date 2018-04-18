@@ -35,7 +35,7 @@ exec(char *path, char **argv)
   if(elf.magic != ELF_MAGIC)
     goto bad;
 
-  if((pgdir = setupkvm()) == 0)
+  if((pgdir = alloc_kvm_pgdir()) == 0)
     goto bad;
 
   // Load program into memory.
@@ -99,7 +99,7 @@ exec(char *path, char **argv)
   curproc->sz = sz;
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
-  switchuvm(curproc);
+  switch2uvm(curproc);
   freevm(oldpgdir);
   return 0;
 

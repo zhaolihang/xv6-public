@@ -45,7 +45,7 @@ even: proc.c   # VERY important
 
 # A few more action packed spreads
 # page table creation and process loading
-#     walkpgdir mappages setupkvm switch[ku]vm inituvm (loaduvm)
+#     walkpgdir mappages alloc_kvm_pgdir switch[ku]vm init_initcode_uvm (loaduvm)
 # process memory management
 #     allocuvm deallocuvm freevm
 left: vm.c

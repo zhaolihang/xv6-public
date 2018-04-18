@@ -19,11 +19,11 @@ swtch:
   pushl %ebp
   pushl %ebx
   pushl %esi
-  pushl %edi
+  pushl %edi # 压入内核栈中
 
   # Switch stacks
-  movl %esp, (%eax) # mycpu->context = esp
-  movl %edx, %esp   # esp = mycpu->context
+  movl %esp, (%eax) # c->scheduler = esp 保存内核的 scheduler() context
+  movl %edx, %esp   # esp = mycpu->context  用户进程的内核栈 mycpu->context最高处包含eip
 
   # Load new callee-save registers
   popl %edi

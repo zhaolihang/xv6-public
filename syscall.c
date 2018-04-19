@@ -49,7 +49,7 @@ fetchstr(uint addr, char **pp)
 int
 argint(int n, int *ip)
 {
-  return fetchint((myproc()->tf->esp) + 4 + 4*n, ip);
+  return fetchint((myproc()->tf->esp) + 4 + 4*n, ip);  //myproc()->tf->esp 用户空间的栈顶  skip eip  c语言函数执行 exec(char* ,char**) 会压入eip
 }
 
 // Fetch the nth word-sized system call argument as a pointer

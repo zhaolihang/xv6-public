@@ -6,11 +6,12 @@
 
 
 # exec(init, argv)
+# push argv ;  push init ;  push eip ;
 .globl start
 start:
   pushl $argv   #  below      .long init   .long 0
-  pushl $init     #  below     .string "/init\0"
-  pushl $0  // where caller pc would be
+  pushl $init   #  below     .string "/init\0"
+  pushl $0      # where caller eip would be  // 这三句模拟c语言函数调用
   movl $SYS_exec, %eax #  功能号
   int $T_SYSCALL   # 系统调用 64
 

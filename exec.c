@@ -8,7 +8,7 @@
 #include "elf.h"
 
 int
-exec(char *path, char **argv)
+exec(char *path, char **argv)// 在内核中执行 使用的是进程的内核栈
 {
   char *s, *last;
   int i, off;
@@ -35,7 +35,7 @@ exec(char *path, char **argv)
   if(elf.magic != ELF_MAGIC)
     goto bad;
 
-  if((pgdir = alloc_kvm_pgdir()) == 0)
+  if((pgdir = alloc_kvm_pgdir()) == 0)// 创建一个新的内核空间 页目录表
     goto bad;
 
   // Load program into memory.

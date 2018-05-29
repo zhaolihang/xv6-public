@@ -1,5 +1,4 @@
-*~
-_*
+**/*_exec
 *.o
 *.d
 *.asm
@@ -9,8 +8,5 @@ vectors.S
 bootblock
 entryother
 initcode
-initcode.out
 kernel
-kernelmemfs
 mkfs
-.gdbinit

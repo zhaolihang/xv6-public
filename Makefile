@@ -63,7 +63,7 @@ OBJS = \
 	kbd.o\
 	lapic.o\
 	log.o\
-	main.o\
+	entry/main.o\
 	mp.o\
 	picirq.o\
 	pipe.o\
@@ -87,28 +87,31 @@ xv6.img: bootblock kernel fs.img   #执行make 会默认生成第一个目标
 	dd if=bootblock of=xv6.img conv=notrunc
 	dd if=kernel of=xv6.img seek=1 conv=notrunc
 
-bootblock: bootasm.S bootmain.c
-	$(CC) $(CFLAGS) -O -c bootmain.c # With ‘-O’, the compiler tries to reduce code size and execution time
-	$(CC) $(CFLAGS) -c bootasm.S
-	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7C00 -o bootblock.o bootasm.o bootmain.o
-	$(OBJDUMP) -S bootblock.o > bootblock.asm
-	$(OBJCOPY) -S -O binary -j .text bootblock.o bootblock
+bootblock: boot/bootasm.S boot/bootmain.c
+	$(CC) $(CFLAGS) -O -c boot/bootmain.c -o boot/bootmain.o # With ‘-O’, the compiler tries to reduce code size and execution time
+	$(CC) $(CFLAGS) -c boot/bootasm.S -o boot/bootasm.o
+	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7C00 -o boot/bootblock.o boot/bootasm.o boot/bootmain.o
+	$(OBJDUMP) -S boot/bootblock.o > boot/bootblock.asm
+	$(OBJCOPY) -S -O binary -j .text boot/bootblock.o bootblock
 	./sign.pl bootblock
 
-entryother: entryother.S
-	$(CC) $(CFLAGS) -c entryother.S
-	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o bootblockother.o entryother.o
-	$(OBJCOPY) -S -O binary -j .text bootblockother.o entryother
-	$(OBJDUMP) -S bootblockother.o > entryother.asm
+entryother: entry/entryother.S
+	$(CC) $(CFLAGS) -c entry/entryother.S -o entry/entryother.o
+	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o entry/bootblockother.o entry/entryother.o
+	$(OBJCOPY) -S -O binary -j .text entry/bootblockother.o entryother
+	$(OBJDUMP) -S entry/bootblockother.o > entry/entryother.asm
 
-initcode: initcode.S
-	$(CC) $(CFLAGS) -c initcode.S
-	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o initcode.out initcode.o
-	$(OBJCOPY) -S -O binary initcode.out initcode
-	$(OBJDUMP) -S initcode.o > initcode.asm
+initcode: entry/initcode.S
+	$(CC) $(CFLAGS) -c entry/initcode.S -o entry/initcode.o
+	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o entry/initcode.out entry/initcode.o
+	$(OBJCOPY) -S -O binary entry/initcode.out initcode
+	$(OBJDUMP) -S entry/initcode.o > entry/initcode.asm
 
-kernel: $(OBJS) entry.o entryother initcode kernel.ld 
-	$(LD) $(LDFLAGS) -T kernel.ld -o kernel entry.o $(OBJS) -b binary initcode entryother
+entry/entry.o: entry/entry.S
+	$(CC) $(CFLAGS)  -c entry/entry.S -o entry/entry.o
+
+kernel: $(OBJS) entry/entry.o entryother initcode kernel.ld 
+	$(LD) $(LDFLAGS) -T kernel.ld -o kernel entry/entry.o $(OBJS) -b binary entryother initcode
 	$(OBJDUMP) -S kernel > kernel.asm
 	$(OBJDUMP) -t kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > kernel.sym
 

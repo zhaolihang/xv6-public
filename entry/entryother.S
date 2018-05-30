@@ -15,7 +15,7 @@
 # It copies this code (start) at 0x7000.  It puts the address of
 # a newly allocated per-core stack in start-4,the address of the
 # place to jump to (mpenter) in start-8, and the physical address
-# of entrypgdir in start-12.
+# of entry_page_directory in start-12.
 #
 # This code combines elements of bootasm.S and entry.S.
 
@@ -59,8 +59,8 @@ start32:
   movl    %cr4, %eax
   orl     $(CR4_PSE), %eax # 开启4m的页
   movl    %eax, %cr4
-  # Use entrypgdir as our initial page table
-  movl    (start-12), %eax   #    公共的entrypgdir 的物理地址是由bsp 设置在物理地址 (0x7000-12) 处 
+  # Use entry_page_directory as our initial page table
+  movl    (start-12), %eax   #    公共的entry_page_directory 的物理地址是由bsp 设置在物理地址 (0x7000-12) 处 
   movl    %eax, %cr3
   # Turn on paging.
   movl    %cr0, %eax

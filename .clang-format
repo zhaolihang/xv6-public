@@ -110,7 +110,7 @@ BreakBeforeTernaryOperators:	true
 BreakConstructorInitializersBeforeComma:	false
 
 # 每行字符的限制，0表示没有限制
-ColumnLimit:	100
+ColumnLimit:	110
 
 # 描述具有特殊意义的注释的正则表达式，它不应该被分割为多行或以其它方式改变
 CommentPragmas:	'^ IWYU pragma:'
@@ -135,6 +135,9 @@ ExperimentalAutoDetectBinPacking:	false
 
 # 需要被解读为foreach循环而不是函数调用的宏
 ForEachMacros:	[ foreach, Q_FOREACH, BOOST_FOREACH ]
+
+# 允许排序#include
+SortIncludes:	false
 
 # 对#include进行排序，匹配了某正则表达式的#include拥有对应的优先级，匹配不到的则默认优先级为INT_MAX(优先级越小排序越靠前)，
 #   可以定义负数优先级从而保证某些#include永远在最前面
@@ -164,7 +167,7 @@ MacroBlockBegin:	''
 MacroBlockEnd:	''
 
 # 连续空行的最大数量
-MaxEmptyLinesToKeep:	1
+MaxEmptyLinesToKeep:	2
 
 # 命名空间的缩进: None, Inner(缩进嵌套的命名空间中的内容), All
 NamespaceIndentation:	Inner
@@ -185,7 +188,7 @@ PenaltyBreakBeforeFirstCallParameter:	19
 PenaltyBreakComment:	300
 
 # 第一次在<<前换行的penalty
-PenaltyBreakFirstLessLess:	120
+PenaltyBreakFirstLessLess:	115
 
 # 在一个字符串字面量中引入换行的penalty
 PenaltyBreakString:	1000
@@ -200,10 +203,7 @@ PenaltyReturnTypeOnItsOwnLine:	60
 PointerAlignment:	Left
 
 # 允许重新排版注释
-ReflowComments:	true
-
-# 允许排序#include
-SortIncludes:	true
+ReflowComments:	false
 
 # 在C风格类型转换后添加空格
 SpaceAfterCStyleCast:	false
@@ -218,10 +218,10 @@ SpaceBeforeParens:	ControlStatements
 SpaceInEmptyParentheses:	false
 
 # 在尾随的评论前添加的空格数(只适用于//)
-SpacesBeforeTrailingComments:	2
+SpacesBeforeTrailingComments:	4
 
 # 在尖括号的<后和>前添加空格
-SpacesInAngles:	true
+SpacesInAngles:	false
 
 # 在容器(ObjC和JavaScript的数组和字典等)字面量中添加空格
 SpacesInContainerLiterals:	true
@@ -230,7 +230,7 @@ SpacesInContainerLiterals:	true
 SpacesInCStyleCastParentheses:	true
 
 # 在圆括号的(后和)前添加空格
-SpacesInParentheses:	true
+SpacesInParentheses:	false
 
 # 在方括号的[后和]前添加空格，lamda表达式和未指明大小的数组的声明不受影响
 SpacesInSquareBrackets:	false

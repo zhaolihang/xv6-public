@@ -51,7 +51,7 @@ exec(char *path, char **argv)// 在内核中执行 使用的是进程的内核�
       goto bad;
     if((sz = allocuvm(pgdir, sz, ph.vaddr + ph.memsz)) == 0)
       goto bad;
-    if(ph.vaddr % PGSIZE != 0)
+    if(ph.vaddr % PAGE_SIZE != 0)
       goto bad;
     if(loaduvm(pgdir, (char*)ph.vaddr, ip, ph.off, ph.filesz) < 0)
       goto bad;
@@ -62,10 +62,10 @@ exec(char *path, char **argv)// 在内核中执行 使用的是进程的内核�
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible.  Use the second as the user stack.
-  sz = PGROUNDUP(sz);
-  if((sz = allocuvm(pgdir, sz, sz + 2*PGSIZE)) == 0)
+  sz = PAGE_ROUNDUP(sz);
+  if((sz = allocuvm(pgdir, sz, sz + 2*PAGE_SIZE)) == 0)
     goto bad;
-  clearpteu(pgdir, (char*)(sz - 2*PGSIZE));
+  clearpteu(pgdir, (char*)(sz - 2*PAGE_SIZE));
   sp = sz;
 
   // Push argument strings, prepare rest of stack in ustack.

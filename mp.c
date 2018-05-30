@@ -11,7 +11,7 @@
 #include "mmu.h"
 #include "proc.h"
 
-struct cpu cpus[NCPU];//8个核心
+struct cpu cpus[MAX_CPU];//8个核心
 int ncpu;
 uchar ioapicid;
 
@@ -106,7 +106,7 @@ mpinit(void)// 获取 ioapicid 并且获取每个cpu的apic id 存放带相应�
     switch(*p){
     case MPPROC:
       proc = (struct mpproc*)p;
-      if(ncpu < NCPU) {
+      if(ncpu < MAX_CPU) {
         cpus[ncpu].apicid = proc->apicid;  // apicid may differ from ncpu
         ncpu++;
       }

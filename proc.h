@@ -3,14 +3,14 @@ struct cpu {
   uchar apicid;                // Local APIC ID
   struct context *scheduler;   // swtch() here to enter scheduler   // scheduler函数中的context 寄存器状态
   struct taskstate tss;         // Used by x86 to find stack for interrupt  tss 在用户程序中发生中断的时候需要找到0特权级的栈
-  struct segdesc gdt[NSEGS];   // x86 global descriptor table
+  struct segdesc gdt[SEG_COUNT];   // x86 global descriptor table
   volatile uint started;       // Has the CPU started?
   int ncli;                    // Depth of pushcli nesting.
   int intena;                  // Were interrupts enabled before pushcli?
   struct proc *proc;           // The process running on this cpu or null // cpu 正在运行的进程
 };
 
-extern struct cpu cpus[NCPU];
+extern struct cpu cpus[MAX_CPU];
 extern int ncpu;
 
 //PAGEBREAK: 17

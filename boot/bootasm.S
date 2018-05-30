@@ -7,7 +7,7 @@
 # memory at physical address 0x7c00 and starts executing in real mode
 # with %cs=0 %ip=7c00.
 
-.code16                       # Assemble for 16-bit mode
+.code16
 .globl start
 start:
   cli                         # BIOS enabled interrupts; disable
@@ -44,13 +44,12 @@ seta20.2:
   orl     $CR0_PE, %eax
   movl    %eax, %cr0
 
-//PAGEBREAK!
   # Complete the transition to 32-bit protected mode by using a long jmp
   # to reload %cs and %eip.  The segment descriptors are set up with no
   # translation, so that the mapping is still the identity mapping.
   ljmp    $(SEG_KCODE<<3), $start32
 
-.code32  # Tell assembler to generate 32-bit code now.
+.code32
 start32:
   # Set up the protected-mode data segment registers
   movw    $(SEG_KDATA<<3), %ax    # Our data segment selector
@@ -65,25 +64,18 @@ start32:
   movl    $start, %esp
   call    bootmain # in bootmain.c
 
-  # If bootmain returns (it shouldn't), trigger a Bochs
-  # breakpoint if running under Bochs, then loop.
-  movw    $0x8a00, %ax            # 0x8a00 -> port 0x8a00
-  movw    %ax, %dx
-  outw    %ax, %dx
-  movw    $0x8ae0, %ax            # 0x8ae0 -> port 0x8a00
-  outw    %ax, %dx
 spin:
   jmp     spin
 
-# Bootstrap GDT
-.p2align 2                                # force 4 byte alignment
 # .p2align => power 2 align     .p2align 5  2^5对齐
+.p2align 2                                # force 4 byte alignment
+
 gdt:
   ASM_SEG_NULL                             # null seg
   ASM_MAKE_SEG(APP_SEG_TYPE_X|APP_SEG_TYPE_R, 0x0, 0xffffffff)   # code seg
   ASM_MAKE_SEG(APP_SEG_TYPE_W, 0x0, 0xffffffff)         # data seg
 
-gdtdesc:  #  gdtBase(32bit),limit(16bit)
-  .word   (gdtdesc - gdt - 1)             # sizeof(gdt) - 1
-  .long   gdt                             # address gdt
+gdtdesc:
+  .word   (gdtdesc - gdt - 1)             # sizeof(gdt)-1 ,  limit(16bit)
+  .long   gdt                             # address gdt   ,  gdtBase(32bit)
 

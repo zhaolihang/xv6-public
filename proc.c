@@ -96,7 +96,7 @@ found:
     p->state = UNUSED;// 栈空间分配失败返还这个结构体
     return 0;
   }
-  sp = p->kstack + KSTACKSIZE; // 栈顶
+  sp = p->kstack + KSTACK_SIZE; // 栈顶
 
 {
   // Leave room for trap frame.
@@ -136,14 +136,14 @@ userinit(void)
   if((p->pgdir = alloc_kvm_pgdir()) == 0)//分配一个内核预置的页目录表
     panic("userinit: out of memory?");
   init_initcode_uvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size); // 在刚刚分配的页目录表中初始化initcode.bin 
-  p->sz = PGSIZE;// 进程使用的内存大小
+  p->sz = PAGE_SIZE;// 进程使用的内存大小
   memset(p->tf, 0, sizeof(*p->tf));// 初始化 trapframe
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
   p->tf->es = p->tf->ds;
   p->tf->ss = p->tf->ds;
   p->tf->eflags = FL_IF; // 开启中断 
-  p->tf->esp = PGSIZE; // 把initcode.bin 未使用的4k边界做为用户栈 没有单独分配用户栈
+  p->tf->esp = PAGE_SIZE; // 把initcode.bin 未使用的4k边界做为用户栈 没有单独分配用户栈
   p->tf->eip = 0;  // beginning of initcode.S   指令指针在0处执行 trapret 返回的地方
 
   safestrcpy(p->name, "initcode", sizeof(p->name));// 设置进程名字

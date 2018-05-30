@@ -24,8 +24,8 @@ struct {
 } kmem;
 
 // Initialization happens in two phases.
-// 1. main() calls kinit1() while still using entrypgdir to place just
-// the pages mapped by entrypgdir on free list.
+// 1. main() calls kinit1() while still using entry_page_directory to place just
+// the pages mapped by entry_page_directory on free list.
 // 2. main() calls kinit2() with the rest of the physical pages
 // after installing a full page table that maps them on all cores.
 void
@@ -47,8 +47,8 @@ void
 freerange(void *vstart, void *vend)
 {
   char *p;
-  p = (char*)PGROUNDUP((uint)vstart);//p2align
-  for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
+  p = (char*)PAGE_ROUNDUP((uint)vstart);//p2align
+  for(; p + PAGE_SIZE <= (char*)vend; p += PAGE_SIZE)
     kfree(p);
 }
 //PAGEBREAK: 21
@@ -61,11 +61,11 @@ kfree(char *v)
 {
   struct run *r;
 
-  if((uint)v % PGSIZE || v < end || V2P(v) >= PHYSTOP)
+  if((uint)v % PAGE_SIZE || v < end || V2P(v) >= TOP_PHYSICAL)
     panic("kfree");
 
   // Fill with junk to catch dangling refs.
-  memset(v, 1, PGSIZE);
+  memset(v, 1, PAGE_SIZE);
 
   if(kmem.use_lock)
     acquire(&kmem.lock);

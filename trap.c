@@ -27,7 +27,7 @@ tvinit(void)
 }
 
 void
-idtinit(void)
+idt_init(void)
 {
   lidt(idt, sizeof(idt));
 }

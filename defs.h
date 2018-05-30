@@ -160,7 +160,7 @@ void            syscall(void);
 void            timerinit(void);
 
 // trap.c
-void            idtinit(void);
+void            idt_init(void);
 extern uint     ticks;
 void            tvinit(void);
 extern struct spinlock tickslock;

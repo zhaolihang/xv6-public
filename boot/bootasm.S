@@ -79,9 +79,9 @@ spin:
 .p2align 2                                # force 4 byte alignment
 # .p2align => power 2 align     .p2align 5  2^5对齐
 gdt:
-  SEG_NULLASM                             # null seg
-  SEG_ASM(STA_X|STA_R, 0x0, 0xffffffff)   # code seg
-  SEG_ASM(STA_W, 0x0, 0xffffffff)         # data seg
+  ASM_SEG_NULL                             # null seg
+  ASM_MAKE_SEG(APP_SEG_TYPE_X|APP_SEG_TYPE_R, 0x0, 0xffffffff)   # code seg
+  ASM_MAKE_SEG(APP_SEG_TYPE_W, 0x0, 0xffffffff)         # data seg
 
 gdtdesc:  #  gdtBase(32bit),limit(16bit)
   .word   (gdtdesc - gdt - 1)             # sizeof(gdt) - 1

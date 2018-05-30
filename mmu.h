@@ -55,7 +55,7 @@ struct segdesc {
   uint lim_15_0 : 16;  // Low bits of segment limit
   uint base_15_0 : 16; // Low bits of segment base address
   uint base_23_16 : 8; // Middle bits of segment base address
-  uint type : 4;       // Segment type (see STS_ constants)
+  uint type : 4;       // Segment type (see SYS_SEG_TYPE_ constants)
   uint s : 1;          // 0 = system, 1 = application
   uint dpl : 2;        // Descriptor Privilege Level
   uint p : 1;          // Present
@@ -81,26 +81,26 @@ struct segdesc {
 #define DPL_USER    0x3     // User DPL
 
 // Application segment type bits
-#define STA_X       0x8     // Executable segment
-#define STA_E       0x4     // Expand down (non-executable segments)
-#define STA_C       0x4     // Conforming code segment (executable only)
-#define STA_W       0x2     // Writeable (non-executable segments)
-#define STA_R       0x2     // Readable (executable segments)
-#define STA_A       0x1     // Accessed
+#define APP_SEG_TYPE_X       0x8     // Executable segment
+#define APP_SEG_TYPE_E       0x4     // Expand down (non-executable segments)
+#define APP_SEG_TYPE_C       0x4     // Conforming code segment (executable only)
+#define APP_SEG_TYPE_W       0x2     // Writeable (non-executable segments)
+#define APP_SEG_TYPE_R       0x2     // Readable (executable segments)
+#define APP_SEG_TYPE_A       0x1     // Accessed
 
 // System segment type bits
-#define STS_T16A    0x1     // Available 16-bit TSS
-#define STS_LDT     0x2     // Local Descriptor Table
-#define STS_T16B    0x3     // Busy 16-bit TSS
-#define STS_CG16    0x4     // 16-bit Call Gate
-#define STS_TG      0x5     // Task Gate / Coum Transmitions
-#define STS_IG16    0x6     // 16-bit Interrupt Gate
-#define STS_TG16    0x7     // 16-bit Trap Gate
-#define STS_T32A    0x9     // Available 32-bit TSS
-#define STS_T32B    0xB     // Busy 32-bit TSS
-#define STS_CG32    0xC     // 32-bit Call Gate
-#define STS_IG32    0xE     // 32-bit Interrupt Gate
-#define STS_TG32    0xF     // 32-bit Trap Gate
+#define SYS_SEG_TYPE_T16A    0x1     // Available 16-bit TSS
+#define SYS_SEG_TYPE_LDT     0x2     // Local Descriptor Table
+#define SYS_SEG_TYPE_T16B    0x3     // Busy 16-bit TSS
+#define SYS_SEG_TYPE_CG16    0x4     // 16-bit Call Gate
+#define SYS_SEG_TYPE_TG      0x5     // Task Gate / Coum Transmitions
+#define SYS_SEG_TYPE_IG16    0x6     // 16-bit Interrupt Gate
+#define SYS_SEG_TYPE_TG16    0x7     // 16-bit Trap Gate
+#define SYS_SEG_TYPE_T32A    0x9     // Available 32-bit TSS
+#define SYS_SEG_TYPE_T32B    0xB     // Busy 32-bit TSS
+#define SYS_SEG_TYPE_CG32    0xC     // 32-bit Call Gate
+#define SYS_SEG_TYPE_IG32    0xE     // 32-bit Interrupt Gate
+#define SYS_SEG_TYPE_TG32    0xF     // 32-bit Trap Gate
 
 // A virtual address 'la' has a three-part structure as follows:
 //
@@ -197,7 +197,7 @@ struct gatedesc {
   uint cs : 16;         // code segment selector
   uint args : 5;        // # args, 0 for interrupt/trap gates
   uint rsv1 : 3;        // reserved(should be zero I guess)
-  uint type : 4;        // type(STS_{TG,IG32,TG32})
+  uint type : 4;        // type(SYS_SEG_TYPE_{TG,IG32,TG32})
   uint s : 1;           // must be 0 (system)
   uint dpl : 2;         // descriptor(meaning new) privilege level
   uint p : 1;           // Present
@@ -218,7 +218,7 @@ struct gatedesc {
   (gate).cs = (sel);                                      \
   (gate).args = 0;                                        \
   (gate).rsv1 = 0;                                        \
-  (gate).type = (istrap) ? STS_TG32 : STS_IG32;           \
+  (gate).type = (istrap) ? SYS_SEG_TYPE_TG32 : SYS_SEG_TYPE_IG32;           \
   (gate).s = 0;                                           \
   (gate).dpl = (d);                                       \
   (gate).p = 1;                                           \

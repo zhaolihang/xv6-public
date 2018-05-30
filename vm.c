@@ -22,10 +22,10 @@ seginit(void)
   // because it would have to have DPL_USR, but the CPU forbids
   // an interrupt from CPL=0 to DPL=3.
   c = &cpus[cpuid()];
-  c->gdt[SEG_KCODE] = SEG(STA_X|STA_R, 0, 0xffffffff, 0);
-  c->gdt[SEG_KDATA] = SEG(STA_W, 0, 0xffffffff, 0);
-  c->gdt[SEG_UCODE] = SEG(STA_X|STA_R, 0, 0xffffffff, DPL_USER);
-  c->gdt[SEG_UDATA] = SEG(STA_W, 0, 0xffffffff, DPL_USER);
+  c->gdt[SEG_KCODE] = SEG(APP_SEG_TYPE_X|APP_SEG_TYPE_R, 0, 0xffffffff, 0);
+  c->gdt[SEG_KDATA] = SEG(APP_SEG_TYPE_W, 0, 0xffffffff, 0);
+  c->gdt[SEG_UCODE] = SEG(APP_SEG_TYPE_X|APP_SEG_TYPE_R, 0, 0xffffffff, DPL_USER);
+  c->gdt[SEG_UDATA] = SEG(APP_SEG_TYPE_W, 0, 0xffffffff, DPL_USER);
   lgdt(c->gdt, sizeof(c->gdt));
 }
 
@@ -163,7 +163,7 @@ switch2uvm(struct proc *p)// set ltr  and  lcr3
     panic("switch2uvm: no pgdir");
 
   pushcli();
-  mycpu()->gdt[SEG_TSS] = SEG16(STS_T32A, &mycpu()->tss,
+  mycpu()->gdt[SEG_TSS] = SEG16(SYS_SEG_TYPE_T32A, &mycpu()->tss,
                                 sizeof(mycpu()->tss)-1, 0);  // 初始化 tss
   mycpu()->gdt[SEG_TSS].s = 0;
   mycpu()->tss.ss0 = SEG_KDATA << 3;

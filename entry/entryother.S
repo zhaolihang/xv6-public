@@ -82,9 +82,9 @@ spin:
 
 .p2align 2
 gdt:    #  在 bootasm.S for bsp  中有同样的数据
-  SEG_NULLASM
-  SEG_ASM(STA_X|STA_R, 0, 0xffffffff)
-  SEG_ASM(STA_W, 0, 0xffffffff)
+  ASM_SEG_NULL
+  ASM_MAKE_SEG(APP_SEG_TYPE_X|APP_SEG_TYPE_R, 0, 0xffffffff)
+  ASM_MAKE_SEG(APP_SEG_TYPE_W, 0, 0xffffffff)
 
 
 gdtdesc:

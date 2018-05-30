@@ -5,7 +5,7 @@
 #define DEVICE_SPACE 0xFE000000    // Other devices are at high addresses
 
 // Key addresses for address space layout (see kmap in vm.c for layout)
-#define KERNBASE 0x80000000             // First kernel virtual address
+#define KERNBASE 0x80000000            // First kernel virtual address
 #define KERNEND (KERNBASE + EXTMEM)    // Address where kernel is linked
 
 #define V2P(a) (((uint)(a)) - KERNBASE)

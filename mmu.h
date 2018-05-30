@@ -118,12 +118,12 @@ struct segdesc {
 #define PAGE_TABLE_INDEX(va)      (((uint)(va) >> PTXSHIFT) & 0x3FF)
 
 // construct virtual address from indexes and offset
-#define PGADDR(d, t, o) ((uint)((d) << PDXSHIFT | (t) << PTXSHIFT | (o)))
+#define PGADDR(dir, table, offset) ((uint)((dir) << PDXSHIFT | (table) << PTXSHIFT | (offset)))
 
 // Page directory and page table constants.
-#define PAGE_DIR_TABLE_ENTRY_SIZE      1024    // # directory entries per page directory
-#define PAGE_TABLE_ENTRY_SIZE      1024    // # PTEs per page table
-#define PAGE_SIZE          4096    // bytes mapped by a page
+#define PAGE_DIR_TABLE_ENTRY_SIZE   1024    // # directory entries per page directory
+#define PAGE_TABLE_ENTRY_SIZE       1024    // # PTEs per page table
+#define PAGE_SIZE                   4096    // bytes mapped by a page
 
 #define PGSHIFT         12      // log2(PAGE_SIZE)
 #define PTXSHIFT        12      // offset of PAGE_TABLE_INDEX in a linear address
@@ -133,14 +133,14 @@ struct segdesc {
 #define PAGE_ROUNDDOWN(a) (((a)) & ~(PAGE_SIZE-1))
 
 // Page table/directory entry flags.
-#define PTE_P             0x001   // Present
+#define PTE_P           0x001   // Present
 #define PTE_W           0x002   // Writeable
-#define PTE_U             0x004   // User
+#define PTE_U           0x004   // User
 #define PTE_PWT         0x008   // Write-Through
 #define PTE_PCD         0x010   // Cache-Disable
-#define PTE_A             0x020   // Accessed
-#define PTE_D             0x040   // Dirty
-#define PTE_PS            0x080   // Page Size
+#define PTE_A           0x020   // Accessed
+#define PTE_D           0x040   // Dirty
+#define PTE_PS          0x080   // Page Size
 #define PTE_MBZ         0x180   // Bits must be zero
 
 // Address in page table or page directory entry
@@ -212,17 +212,17 @@ struct gatedesc {
 // - dpl: Descriptor Privilege Level -
 //        the privilege level required for software to invoke
 //        this interrupt/trap gate explicitly using an int instruction.
-#define MAKE_GATE_DESCRIPTOR(gate, istrap, sel, off, d)   \
-{                                                                                         \
-    (gate).off_15_0  = (uint)( off )&0xffff;                                \
-    (gate).cs         = (sel);                                            \
+#define MAKE_GATE_DESCRIPTOR(gate, istrap, sel, off, d)                  \
+{                                                                        \
+    (gate).off_15_0  = (uint)( off )&0xffff;                             \
+    (gate).cs        = (sel);                                            \
     (gate).args      = 0;                                                \
     (gate).rsv1      = 0;                                                \
-    (gate).type       = (istrap) ? SYS_SEG_TYPE_TG32 : SYS_SEG_TYPE_IG32; \
-    (gate).s           = 0;                                                \
-    (gate).dpl        = (d);                                              \
-    (gate).p           = 1;                                                \
-    (gate).off_31_16 = (uint)(off) >> 16;                       \
+    (gate).type      = (istrap) ? SYS_SEG_TYPE_TG32 : SYS_SEG_TYPE_IG32; \
+    (gate).s         = 0;                                                \
+    (gate).dpl       = (d);                                              \
+    (gate).p         = 1;                                                \
+    (gate).off_31_16 = (uint)(off) >> 16;                                \
 }
 
 #endif

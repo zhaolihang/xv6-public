@@ -1,17 +1,18 @@
 // Per-CPU state
 struct cpu {
-  uchar apicid;                // Local APIC ID
-  struct context *scheduler;   // swtch() here to enter scheduler   // scheduler函数中的context 寄存器状态
-  struct taskstate tss;         // Used by x86 to find stack for interrupt  tss 在用户程序中发生中断的时候需要找到0特权级的栈
-  struct segdesc gdt[SEG_SIZE];   // x86 global descriptor table
-  volatile uint started;       // Has the CPU started?
-  int ncli;                    // Depth of pushcli nesting.
-  int intena;                  // Were interrupts enabled before pushcli?
-  struct proc *proc;           // The process running on this cpu or null // cpu 正在运行的进程
+    uchar           apicid;    // Local APIC ID
+    struct context* scheduler;    // swtch() here to enter scheduler   // scheduler函数中的context 寄存器状态
+    struct taskstate
+                   tss;    // Used by x86 to find stack for interrupt  tss 在用户程序中发生中断的时候需要找到0特权级的栈
+    struct segdesc gdt[SEG_SIZE];    // x86 global descriptor table
+    volatile uint  started;          // Has the CPU started?
+    int            ncli;             // Depth of pushcli nesting.
+    int            intena;           // Were interrupts enabled before pushcli?
+    struct proc*   proc;             // The process running on this cpu or null // cpu 正在运行的进程
 };
 
 extern struct cpu cpus[MAX_CPU];
-extern int ncpu;
+extern int        ncpu;
 
 //PAGEBREAK: 17
 // Saved registers for kernel context switches.
@@ -25,30 +26,30 @@ extern int ncpu;
 // at the "Switch stacks" comment. Switch doesn't save eip explicitly,
 // but it is on the stack and allocproc() manipulates it.
 struct context {
-  uint edi;// 低地址 在栈顶
-  uint esi;
-  uint ebx;
-  uint ebp;
-  uint eip;// 高地址 在栈底
+    uint edi;    // 低地址 在栈顶
+    uint esi;
+    uint ebx;
+    uint ebp;
+    uint eip;    // 高地址 在栈底
 };
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
 struct proc {
-  uint sz;                     // Size of process memory (bytes)
-  pde_t* pgdir;                // Page directory table
-  char *kstack;                // Bottom of kernel stack for this process
-  enum procstate state;        // Process state
-  int pid;                     // Process ID
-  struct proc *parent;         // Parent process
-  struct trapframe *tf;        // Trap frame for current syscall
-  struct context *context;     // swtch() here to run process
-  void *chan;                  // If non-zero, sleeping on chan
-  int killed;                  // If non-zero, have been killed
-  struct file *ofile[NOFILE];  // Open files
-  struct inode *cwd;           // Current directory
-  char name[16];               // Process name (debugging)
+    uint              sz;               // Size of process memory (bytes)
+    pde_t*            pgdir;            // Page directory table
+    char*             kstack;           // Bottom of kernel stack for this process
+    enum procstate    state;            // Process state
+    int               pid;              // Process ID
+    struct proc*      parent;           // Parent process
+    struct trapframe* tf;               // Trap frame for current syscall
+    struct context*   context;          // swtch() here to run process
+    void*             chan;             // If non-zero, sleeping on chan
+    int               killed;           // If non-zero, have been killed
+    struct file*      ofile[NOFILE];    // Open files
+    struct inode*     cwd;              // Current directory
+    char              name[16];         // Process name (debugging)
 };
 
 // Process memory is laid out contiguously, low addresses first:

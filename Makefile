@@ -51,7 +51,7 @@ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 &
 ASFLAGS = -m32 -gdwarf-2 -Wa,-divide -I.
 LDFLAGS += -m $(shell $(LD) -V | grep elf_i386 2>/dev/null | head -n 1)
 
-OBJS = \
+KERNEL_OBJS = \
 	bio.o\
 	console.o\
 	exec.o\
@@ -102,8 +102,8 @@ boot/bootasm.o: boot/bootasm.S
 	$(CC) $(CFLAGS) -c boot/bootasm.S -o boot/bootasm.o
 
 #kernel
-kernel: $(OBJS) entryother initcode kernel.ld 
-	$(LD) $(LDFLAGS) -T kernel.ld -o kernel $(OBJS) -b binary entryother initcode
+kernel: $(KERNEL_OBJS) entryother initcode kernel.ld 
+	$(LD) $(LDFLAGS) -T kernel.ld -o kernel $(KERNEL_OBJS) -b binary entryother initcode
 	$(OBJDUMP) -S kernel > kernel.asm
 	$(OBJDUMP) -t kernel | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > kernel.sym
 
@@ -125,20 +125,23 @@ initcode: entry/initcode.S
 	$(OBJDUMP) -S entry/initcode.o > entry/initcode.asm
 
 
-ULIB = ulib.o usys.o printf.o umalloc.o
+ULIB_SYS_OBJS = user_lib/ulib.o user_lib/usys.o
+ULIB_IO_OBJS = user_lib/printf.o user_lib/umalloc.o
+ULIB_OBJS = $(ULIB_SYS_OBJS) $(ULIB_IO_OBJS)
 
 # forktest has less library code linked in - needs to be small
 # in order to be able to max out the proc table.
-exec_forktest: user_program/forktest.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o exec_forktest user_program/forktest.o ulib.o usys.o
+FORKTEST_OBJS = user_program/forktest.o $(ULIB_SYS_OBJS)
+exec_forktest: $(FORKTEST_OBJS)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o exec_forktest $(FORKTEST_OBJS)
 	$(OBJDUMP) -S exec_forktest > forktest.asm
 
-exec_%: user_program/%.o $(ULIB)
+exec_%: user_program/%.o $(ULIB_OBJS)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
-UPROGS=\
+USER_PROGS = \
 	exec_cat\
 	exec_echo\
 	exec_grep\
@@ -158,14 +161,14 @@ UPROGS=\
 mkfs: mkfs.c fs.h
 	gcc -Werror -Wall -o mkfs mkfs.c
 
-fs.img: mkfs README $(UPROGS)
-	./mkfs fs.img README $(UPROGS)
+fs.img: mkfs README $(USER_PROGS)
+	./mkfs fs.img README $(USER_PROGS)
 
 # run in emulators
 CPUS := 2
-QEMUOPTS = -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw -smp $(CPUS) -m 512 $(QEMUEXTRA)
+QEMU_OPTS = -drive file=fs.img,index=1,media=disk,format=raw -drive file=xv6.img,index=0,media=disk,format=raw -smp $(CPUS) -m 512 $(QEMUEXTRA)
 qemu: fs.img xv6.img
-	$(QEMU) -serial mon:stdio $(QEMUOPTS)
+	$(QEMU) -serial mon:stdio $(QEMU_OPTS)
 
 
 -include *.d # 就算*.d 文件找不到也不报错 下次编译使用上次生成的.d文件加快依赖分析
@@ -178,7 +181,7 @@ clean:
 	*/*.o */*.d */*.asm */*.sym */*.log \
 	bootblock entryother initcode kernel xv6.img fs.img \
 	vectors.S \
-	$(UPROGS)
+	$(USER_PROGS)
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so that disk image changes after first build are persistent until clean
 .PRECIOUS: %.o

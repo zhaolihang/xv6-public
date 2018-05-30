@@ -16,5 +16,8 @@
         "**/*.asm": true,
         "**/exec_*": true
     },
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "files.associations": {
+        "sleeplock.h": "c"
+    }
 }

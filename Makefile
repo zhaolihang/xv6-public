@@ -129,11 +129,11 @@ ULIB = ulib.o usys.o printf.o umalloc.o
 
 # forktest has less library code linked in - needs to be small
 # in order to be able to max out the proc table.
-exec_forktest: forktest.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o exec_forktest forktest.o ulib.o usys.o
+exec_forktest: user_program/forktest.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o exec_forktest user_program/forktest.o ulib.o usys.o
 	$(OBJDUMP) -S exec_forktest > forktest.asm
 
-exec_%: %.o $(ULIB)
+exec_%: user_program/%.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym

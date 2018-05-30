@@ -36,15 +36,14 @@ start:
   lgdt    gdtdesc
   movl    %cr0, %eax
   orl     $CR0_PE, %eax
-  movl    %eax, %cr0
+  movl    %eax, %cr0 # 先进入32保护模式
 
   # Complete the transition to 32-bit protected mode by using a long jmp
   # to reload %cs and %eip.  The segment descriptors are set up with no
   # translation, so that the mapping is still the identity mapping.
-  ljmpl    $(SEG_KCODE<<3), $(start32) #  刷新cs 寄存器 转到执行32位的代码
+  ljmpl   $(SEG_KCODE<<3), $(start32) # 刷新cs 寄存器 转到执行32位的代码
 
-//PAGEBREAK!
-.code32  # Tell assembler to generate 32-bit code now.
+.code32
 start32:
   # Set up the protected-mode data segment registers
   movw    $(SEG_KDATA<<3), %ax    # Our data segment selector
@@ -70,22 +69,14 @@ start32:
   # Switch to the stack allocated by startothers()
   movl    (start-4), %esp  #  设置这个cpu的单独栈
   # Call mpenter()  in main.c
-  call	 *(start-8)   #   mpenter函数 的虚拟地址是由bsp 设置在物理地址 (0x7000-8)处，  mpenter在内核的高地址处 这样就调转到了高地址处了
-
-  movw    $0x8a00, %ax
-  movw    %ax, %dx
-  outw    %ax, %dx
-  movw    $0x8ae0, %ax
-  outw    %ax, %dx
-spin:
-  jmp     spin
+  call	 *(start-8) # mpenter函数 的虚拟地址是由bsp 设置在物理地址 (0x7000-8)处, mpenter在内核的高地址处 这样就调转到了高地址处了
 
 .p2align 2
-gdt:    #  在 bootasm.S for bsp  中有同样的数据
+gdt:
   ASM_SEG_NULL
   ASM_MAKE_SEG(APP_SEG_TYPE_X|APP_SEG_TYPE_R, 0, 0xffffffff)
   ASM_MAKE_SEG(APP_SEG_TYPE_W, 0, 0xffffffff)
-
+# ↑↑↑ 在bootasm.S(for bsp)中有同样的数据
 
 gdtdesc:
   .word   (gdtdesc - gdt - 1)

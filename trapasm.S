@@ -11,7 +11,7 @@ alltraps:
   pushal
   
   # Set up data segments.
-  movw $(SEG_KDATA<<3), %ax
+  movw $(SEG_KDATA_INDEX<<3), %ax
   movw %ax, %ds
   movw %ax, %es
 

@@ -18,6 +18,7 @@
     },
     "git.ignoreLimitWarning": true,
     "files.associations": {
-        "sleeplock.h": "c"
+        "sleeplock.h": "c",
+        "file.h": "c"
     }
 }

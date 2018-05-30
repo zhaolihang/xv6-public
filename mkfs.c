@@ -254,8 +254,7 @@ void iappend(uint inum, void* xp, int n) {
                 din.addrs[fbn] = xint(freeblock++);
             }
             x = xint(din.addrs[fbn]);
-        }
-        else {
+        } else {
             if (xint(din.addrs[NDIRECT]) == 0) {
                 din.addrs[NDIRECT] = xint(freeblock++);
             }

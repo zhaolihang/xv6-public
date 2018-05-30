@@ -41,123 +41,110 @@
 #define TCCR    (0x0390/4)   // Timer Current Count
 #define TDCR    (0x03E0/4)   // Timer Divide Configuration
 
-volatile uint *lapic;  // Initialized in mp.c
+volatile uint* lapic;    // Initialized in mp.c
 
 //PAGEBREAK!
-static void
-lapicw(int index, int value)
-{
-  lapic[index] = value;
-  lapic[ID];  // wait for write to finish, by reading
+static void lapicw(int index, int value) {
+    lapic[index] = value;
+    lapic[ID];    // wait for write to finish, by reading
 }
 
-void
-lapicinit(void)
-{
-  if(!lapic)
-    return;
+void lapicinit(void) {
+    if (!lapic)
+        return;
 
-  // Enable local APIC; set spurious interrupt vector.
-  lapicw(SVR, ENABLE | (T_IRQ0 + IRQ_SPURIOUS));
+    // Enable local APIC; set spurious interrupt vector.
+    lapicw(SVR, ENABLE | (T_IRQ0 + IRQ_SPURIOUS));
 
-  // The timer repeatedly counts down at bus frequency
-  // from lapic[TICR] and then issues an interrupt.
-  // If xv6 cared more about precise timekeeping,
-  // TICR would be calibrated using an external time source.
-  lapicw(TDCR, X1);
-  lapicw(TIMER, PERIODIC | (T_IRQ0 + IRQ_TIMER));
-  lapicw(TICR, 10000000);
+    // The timer repeatedly counts down at bus frequency
+    // from lapic[TICR] and then issues an interrupt.
+    // If xv6 cared more about precise timekeeping,
+    // TICR would be calibrated using an external time source.
+    lapicw(TDCR, X1);
+    lapicw(TIMER, PERIODIC | (T_IRQ0 + IRQ_TIMER));
+    lapicw(TICR, 10000000);
 
-  // Disable logical interrupt lines.
-  lapicw(LINT0, MASKED);
-  lapicw(LINT1, MASKED);
+    // Disable logical interrupt lines.
+    lapicw(LINT0, MASKED);
+    lapicw(LINT1, MASKED);
 
-  // Disable performance counter overflow interrupts
-  // on machines that provide that interrupt entry.
-  if(((lapic[VER]>>16) & 0xFF) >= 4)
-    lapicw(PCINT, MASKED);
+    // Disable performance counter overflow interrupts
+    // on machines that provide that interrupt entry.
+    if (((lapic[VER] >> 16) & 0xFF) >= 4)
+        lapicw(PCINT, MASKED);
 
-  // Map error interrupt to IRQ_ERROR.
-  lapicw(ERROR, T_IRQ0 + IRQ_ERROR);
+    // Map error interrupt to IRQ_ERROR.
+    lapicw(ERROR, T_IRQ0 + IRQ_ERROR);
 
-  // Clear error status register (requires back-to-back writes).
-  lapicw(ESR, 0);
-  lapicw(ESR, 0);
+    // Clear error status register (requires back-to-back writes).
+    lapicw(ESR, 0);
+    lapicw(ESR, 0);
 
-  // Ack any outstanding interrupts.
-  lapicw(EOI, 0);
+    // Ack any outstanding interrupts.
+    lapicw(EOI, 0);
 
-  // Send an Init Level De-Assert to synchronise arbitration ID's.
-  lapicw(ICRHI, 0);
-  lapicw(ICRLO, BCAST | INIT | LEVEL);
-  while(lapic[ICRLO] & DELIVS)
-    ;
+    // Send an Init Level De-Assert to synchronise arbitration ID's.
+    lapicw(ICRHI, 0);
+    lapicw(ICRLO, BCAST | INIT | LEVEL);
+    while (lapic[ICRLO] & DELIVS)
+        ;
 
-  // Enable interrupts on the APIC (but not on the processor).
-  lapicw(TPR, 0);
+    // Enable interrupts on the APIC (but not on the processor).
+    lapicw(TPR, 0);
 }
 
-int
-lapicid(void)
-{
-  if (!lapic)
-    return 0;
-  return lapic[ID] >> 24;// 内存映射的寄存器 所以每个cpu获取的都是自己的lapic id
+int lapicid(void) {
+    if (!lapic)
+        return 0;
+    return lapic[ID] >> 24;    // 内存映射的寄存器 所以每个cpu获取的都是自己的lapic id
 }
 
 // Acknowledge interrupt.
-void
-lapiceoi(void)
-{
-  if(lapic)
-    lapicw(EOI, 0);
+void lapiceoi(void) {
+    if (lapic)
+        lapicw(EOI, 0);
 }
 
 // Spin for a given number of microseconds.
 // On real hardware would want to tune this dynamically.
-void
-microdelay(int us)
-{
-}
+void microdelay(int us) {}
 
 #define CMOS_PORT    0x70
 #define CMOS_RETURN  0x71
 
 // Start additional processor running entry code at addr.
 // See Appendix B of MultiProcessor Specification.
-void
-lapicstartap(uchar apicid, uint addr)
-{
-  int i;
-  ushort *wrv;
+void lapicstartap(uchar apicid, uint addr) {
+    int     i;
+    ushort* wrv;
 
-  // "The BSP must initialize CMOS shutdown code to 0AH
-  // and the warm reset vector (DWORD based at 40:67) to point at
-  // the AP startup code prior to the [universal startup algorithm]."
-  outb(CMOS_PORT, 0xF);  // offset 0xF is shutdown code
-  outb(CMOS_PORT+1, 0x0A);
-  wrv = (ushort*)P2V((0x40<<4 | 0x67));  // Warm reset vector
-  wrv[0] = 0;
-  wrv[1] = addr >> 4;
+    // "The BSP must initialize CMOS shutdown code to 0AH
+    // and the warm reset vector (DWORD based at 40:67) to point at
+    // the AP startup code prior to the [universal startup algorithm]."
+    outb(CMOS_PORT, 0xF);    // offset 0xF is shutdown code
+    outb(CMOS_PORT + 1, 0x0A);
+    wrv    = ( ushort* )P2V((0x40 << 4 | 0x67));    // Warm reset vector
+    wrv[0] = 0;
+    wrv[1] = addr >> 4;
 
-  // "Universal startup algorithm."
-  // Send INIT (level-triggered) interrupt to reset other CPU.
-  lapicw(ICRHI, apicid<<24);
-  lapicw(ICRLO, INIT | LEVEL | ASSERT);
-  microdelay(200);
-  lapicw(ICRLO, INIT | LEVEL);
-  microdelay(100);    // should be 10ms, but too slow in Bochs!
-
-  // Send startup IPI (twice!) to enter code.
-  // Regular hardware is supposed to only accept a STARTUP
-  // when it is in the halted state due to an INIT.  So the second
-  // should be ignored, but it is part of the official Intel algorithm.
-  // Bochs complains about the second one.  Too bad for Bochs.
-  for(i = 0; i < 2; i++){
-    lapicw(ICRHI, apicid<<24);
-    lapicw(ICRLO, STARTUP | (addr>>12));
+    // "Universal startup algorithm."
+    // Send INIT (level-triggered) interrupt to reset other CPU.
+    lapicw(ICRHI, apicid << 24);
+    lapicw(ICRLO, INIT | LEVEL | ASSERT);
     microdelay(200);
-  }
+    lapicw(ICRLO, INIT | LEVEL);
+    microdelay(100);    // should be 10ms, but too slow in Bochs!
+
+    // Send startup IPI (twice!) to enter code.
+    // Regular hardware is supposed to only accept a STARTUP
+    // when it is in the halted state due to an INIT.  So the second
+    // should be ignored, but it is part of the official Intel algorithm.
+    // Bochs complains about the second one.  Too bad for Bochs.
+    for (i = 0; i < 2; i++) {
+        lapicw(ICRHI, apicid << 24);
+        lapicw(ICRLO, STARTUP | (addr >> 12));
+        microdelay(200);
+    }
 }
 
 #define CMOS_STATA   0x0a
@@ -171,56 +158,53 @@ lapicstartap(uchar apicid, uint addr)
 #define MONTH   0x08
 #define YEAR    0x09
 
-static uint cmos_read(uint reg)
-{
-  outb(CMOS_PORT,  reg);
-  microdelay(200);
+static uint cmos_read(uint reg) {
+    outb(CMOS_PORT, reg);
+    microdelay(200);
 
-  return inb(CMOS_RETURN);
+    return inb(CMOS_RETURN);
 }
 
-static void fill_rtcdate(struct rtcdate *r)
-{
-  r->second = cmos_read(SECS);
-  r->minute = cmos_read(MINS);
-  r->hour   = cmos_read(HOURS);
-  r->day    = cmos_read(DAY);
-  r->month  = cmos_read(MONTH);
-  r->year   = cmos_read(YEAR);
+static void fill_rtcdate(struct rtcdate* r) {
+    r->second = cmos_read(SECS);
+    r->minute = cmos_read(MINS);
+    r->hour   = cmos_read(HOURS);
+    r->day    = cmos_read(DAY);
+    r->month  = cmos_read(MONTH);
+    r->year   = cmos_read(YEAR);
 }
 
 // qemu seems to use 24-hour GWT and the values are BCD encoded
-void cmostime(struct rtcdate *r)
-{
-  struct rtcdate t1, t2;
-  int sb, bcd;
+void cmostime(struct rtcdate* r) {
+    struct rtcdate t1, t2;
+    int            sb, bcd;
 
-  sb = cmos_read(CMOS_STATB);
+    sb = cmos_read(CMOS_STATB);
 
-  bcd = (sb & (1 << 2)) == 0;
+    bcd = (sb & (1 << 2)) == 0;
 
-  // make sure CMOS doesn't modify time while we read it
-  for(;;) {
-    fill_rtcdate(&t1);
-    if(cmos_read(CMOS_STATA) & CMOS_UIP)
-        continue;
-    fill_rtcdate(&t2);
-    if(memcmp(&t1, &t2, sizeof(t1)) == 0)
-      break;
-  }
+    // make sure CMOS doesn't modify time while we read it
+    for (;;) {
+        fill_rtcdate(&t1);
+        if (cmos_read(CMOS_STATA) & CMOS_UIP)
+            continue;
+        fill_rtcdate(&t2);
+        if (memcmp(&t1, &t2, sizeof(t1)) == 0)
+            break;
+    }
 
-  // convert
-  if(bcd) {
-#define    CONV(x)     (t1.x = ((t1.x >> 4) * 10) + (t1.x & 0xf))
-    CONV(second);
-    CONV(minute);
-    CONV(hour  );
-    CONV(day   );
-    CONV(month );
-    CONV(year  );
-#undef     CONV
-  }
+    // convert
+    if (bcd) {
+#define CONV(x) (t1.x = ((t1.x >> 4) * 10) + (t1.x & 0xf))
+        CONV(second);
+        CONV(minute);
+        CONV(hour);
+        CONV(day);
+        CONV(month);
+        CONV(year);
+#undef CONV
+    }
 
-  *r = t1;
-  r->year += 2000;
+    *r = t1;
+    r->year += 2000;
 }

@@ -40,14 +40,14 @@
 #define CR4_PSE         0x00000010      // Page size extension
 
 // various segment selectors.
-#define SEG_KCODE 1  // kernel code
-#define SEG_KDATA 2  // kernel data+stack
-#define SEG_UCODE 3  // user code
-#define SEG_UDATA 4  // user data+stack
-#define SEG_TSS   5  // this process's task state
+#define SEG_KCODE_INDEX 1  // kernel code
+#define SEG_KDATA_INDEX 2  // kernel data+stack
+#define SEG_UCODE_INDEX 3  // user code
+#define SEG_UDATA_INDEX 4  // user data+stack
+#define SEG_TSS_INDEX   5  // this process's task state
 
-// cpu->gdt[SEG_COUNT] holds the above segments.
-#define SEG_COUNT 6
+// cpu->gdt[SEG_SIZE] holds the above segments.
+#define SEG_SIZE 6
 
 #ifndef __ASSEMBLER__
 // Segment Descriptor
@@ -79,7 +79,7 @@ struct segdesc {
   (uint)(lim) >> 16, 0, 0, 1, 0, (uint)(base) >> 24 }
 #endif
 
-#define DPL_USER    0x3     // User DPL
+#define DPL_USER      0x3     // User DPL
 
 // Application segment type bits
 #define APP_SEG_TYPE_X       0x8     // Executable segment
@@ -112,35 +112,35 @@ struct segdesc {
 //  \--- PDX(va) --/ \--- PTX(va) --/
 
 // page directory index
-#define PDX(va)         (((uint)(va) >> PDXSHIFT) & 0x3FF)
+#define PAGE_DIR_INDEX(va)          (((uint)(va) >> PDXSHIFT) & 0x3FF)
 
 // page table index
-#define PTX(va)         (((uint)(va) >> PTXSHIFT) & 0x3FF)
+#define PAGE_TABLE_INDEX(va)      (((uint)(va) >> PTXSHIFT) & 0x3FF)
 
 // construct virtual address from indexes and offset
 #define PGADDR(d, t, o) ((uint)((d) << PDXSHIFT | (t) << PTXSHIFT | (o)))
 
 // Page directory and page table constants.
-#define NPDENTRIES      1024    // # directory entries per page directory
-#define NPTENTRIES      1024    // # PTEs per page table
+#define PAGE_DIR_TABLE_ENTRY_SIZE      1024    // # directory entries per page directory
+#define PAGE_TABLE_ENTRY_SIZE      1024    // # PTEs per page table
 #define PAGE_SIZE          4096    // bytes mapped by a page
 
 #define PGSHIFT         12      // log2(PAGE_SIZE)
-#define PTXSHIFT        12      // offset of PTX in a linear address
-#define PDXSHIFT        22      // offset of PDX in a linear address
+#define PTXSHIFT        12      // offset of PAGE_TABLE_INDEX in a linear address
+#define PDXSHIFT        22      // offset of PAGE_DIR_INDEX in a linear address
 
 #define PAGE_ROUNDUP(sz)  (((sz)+PAGE_SIZE-1) & ~(PAGE_SIZE-1))
 #define PAGE_ROUNDDOWN(a) (((a)) & ~(PAGE_SIZE-1))
 
 // Page table/directory entry flags.
-#define PTE_P           0x001   // Present
+#define PTE_P             0x001   // Present
 #define PTE_W           0x002   // Writeable
-#define PTE_U           0x004   // User
+#define PTE_U             0x004   // User
 #define PTE_PWT         0x008   // Write-Through
 #define PTE_PCD         0x010   // Cache-Disable
-#define PTE_A           0x020   // Accessed
-#define PTE_D           0x040   // Dirty
-#define PTE_PS          0x080   // Page Size
+#define PTE_A             0x020   // Accessed
+#define PTE_D             0x040   // Dirty
+#define PTE_PS            0x080   // Page Size
 #define PTE_MBZ         0x180   // Bits must be zero
 
 // Address in page table or page directory entry
@@ -152,57 +152,56 @@ typedef uint pte_t;
 
 // Task state segment format
 struct taskstate {
-  uint link;         // Old tss selector
-  uint esp0;         // Stack pointers and segment selectors
-  ushort ss0;        //   after an increase in privilege level
-  ushort padding1;
-  uint *esp1;
-  ushort ss1;
-  ushort padding2;
-  uint *esp2;
-  ushort ss2;
-  ushort padding3;
-  void *cr3;         // Page directory base
-  uint *eip;         // Saved state from last task switch
-  uint eflags;
-  uint eax;          // More saved state (registers)
-  uint ecx;
-  uint edx;
-  uint ebx;
-  uint *esp;
-  uint *ebp;
-  uint esi;
-  uint edi;
-  ushort es;         // Even more saved state (segment selectors)
-  ushort padding4;
-  ushort cs;
-  ushort padding5;
-  ushort ss;
-  ushort padding6;
-  ushort ds;
-  ushort padding7;
-  ushort fs;
-  ushort padding8;
-  ushort gs;
-  ushort padding9;
-  ushort ldt;
-  ushort padding10;
-  ushort t;          // Trap on task switch
-  ushort iomb;       // I/O map base address
+    uint   link;    // Old tss selector
+    uint   esp0;    // Stack pointers and segment selectors
+    ushort ss0;     //   after an increase in privilege level
+    ushort padding1;
+    uint*  esp1;
+    ushort ss1;
+    ushort padding2;
+    uint*  esp2;
+    ushort ss2;
+    ushort padding3;
+    void*  cr3;    // Page directory base
+    uint*  eip;    // Saved state from last task switch
+    uint   eflags;
+    uint   eax;    // More saved state (registers)
+    uint   ecx;
+    uint   edx;
+    uint   ebx;
+    uint*  esp;
+    uint*  ebp;
+    uint   esi;
+    uint   edi;
+    ushort es;    // Even more saved state (segment selectors)
+    ushort padding4;
+    ushort cs;
+    ushort padding5;
+    ushort ss;
+    ushort padding6;
+    ushort ds;
+    ushort padding7;
+    ushort fs;
+    ushort padding8;
+    ushort gs;
+    ushort padding9;
+    ushort ldt;
+    ushort padding10;
+    ushort t;       // Trap on task switch
+    ushort iomb;    // I/O map base address
 };
 
-// PAGEBREAK: 12
 // Gate descriptors for interrupts and traps
 struct gatedesc {
-  uint off_15_0 : 16;   // low 16 bits of offset in segment
-  uint cs : 16;         // code segment selector
-  uint args : 5;        // # args, 0 for interrupt/trap gates
-  uint rsv1 : 3;        // reserved(should be zero I guess)
-  uint type : 4;        // type(SYS_SEG_TYPE_{TG,IG32,TG32})
-  uint s : 1;           // must be 0 (system)
-  uint dpl : 2;         // descriptor(meaning new) privilege level
-  uint p : 1;           // Present
-  uint off_31_16 : 16;  // high bits of offset in segment
+    uint off_15_0 : 16;     // low 16 bits of offset in segment
+    uint cs : 16;           // code segment selector
+    uint args : 5;          // # args, 0 for interrupt/trap gates
+    uint rsv1 : 3;          // reserved(should be zero I guess)
+    uint type : 4;          // type(SYS_SEG_TYPE_{TG,IG32,TG32})
+    uint s : 1;             // must be 0 (system)
+    uint dpl : 2;           // descriptor(meaning new) privilege level
+    uint p : 1;             // Present
+    uint off_31_16 : 16;    // high bits of offset in segment
 };
 
 // Set up a normal interrupt/trap gate descriptor.
@@ -213,17 +212,17 @@ struct gatedesc {
 // - dpl: Descriptor Privilege Level -
 //        the privilege level required for software to invoke
 //        this interrupt/trap gate explicitly using an int instruction.
-#define SETGATE(gate, istrap, sel, off, d)                \
-{                                                         \
-  (gate).off_15_0 = (uint)(off) & 0xffff;                \
-  (gate).cs = (sel);                                      \
-  (gate).args = 0;                                        \
-  (gate).rsv1 = 0;                                        \
-  (gate).type = (istrap) ? SYS_SEG_TYPE_TG32 : SYS_SEG_TYPE_IG32;           \
-  (gate).s = 0;                                           \
-  (gate).dpl = (d);                                       \
-  (gate).p = 1;                                           \
-  (gate).off_31_16 = (uint)(off) >> 16;                  \
+#define MAKE_GATE_DESCRIPTOR(gate, istrap, sel, off, d)   \
+{                                                                                         \
+    (gate).off_15_0  = (uint)( off )&0xffff;                                \
+    (gate).cs         = (sel);                                            \
+    (gate).args      = 0;                                                \
+    (gate).rsv1      = 0;                                                \
+    (gate).type       = (istrap) ? SYS_SEG_TYPE_TG32 : SYS_SEG_TYPE_IG32; \
+    (gate).s           = 0;                                                \
+    (gate).dpl        = (d);                                              \
+    (gate).p           = 1;                                                \
+    (gate).off_31_16 = (uint)(off) >> 16;                       \
 }
 
 #endif

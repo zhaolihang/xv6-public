@@ -22,10 +22,10 @@ seginit(void)
   // because it would have to have DPL_USR, but the CPU forbids
   // an interrupt from CPL=0 to DPL=3.
   c = &cpus[cpuid()];
-  c->gdt[SEG_KCODE] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_X|APP_SEG_TYPE_R, 0, 0xffffffff, 0);
-  c->gdt[SEG_KDATA] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_W, 0, 0xffffffff, 0);
-  c->gdt[SEG_UCODE] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_X|APP_SEG_TYPE_R, 0, 0xffffffff, DPL_USER);
-  c->gdt[SEG_UDATA] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_W, 0, 0xffffffff, DPL_USER);
+  c->gdt[SEG_KCODE_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_X|APP_SEG_TYPE_R, 0, 0xffffffff, 0);
+  c->gdt[SEG_KDATA_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_W, 0, 0xffffffff, 0);
+  c->gdt[SEG_UCODE_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_X|APP_SEG_TYPE_R, 0, 0xffffffff, DPL_USER);
+  c->gdt[SEG_UDATA_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_W, 0, 0xffffffff, DPL_USER);
   lgdt(c->gdt, sizeof(c->gdt));
 }
 
@@ -38,7 +38,7 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   pde_t *pde;
   pte_t *pgtab;
 
-  pde = &pgdir[PDX(va)];
+  pde = &pgdir[PAGE_DIR_INDEX(va)];
   if(*pde & PTE_P){
     pgtab = (pte_t*)P2V(PTE_ADDR(*pde));
   } else {
@@ -51,7 +51,7 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
     // entries, if necessary.
     *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
   }
-  return &pgtab[PTX(va)];
+  return &pgtab[PAGE_TABLE_INDEX(va)];
 }
 
 // Create PTEs for virtual addresses starting at va that refer to
@@ -109,7 +109,7 @@ static struct kmap {
   int perm;
 } kmap[] = {
  { (void*)KERNBASE, 0,             EXTMEM,    PTE_W}, // I/O space
- { (void*)KERNLINK, V2P(KERNLINK), V2P(data), 0},     // kern text+rodata
+ { (void*)KERNEND, V2P(KERNEND), V2P(data), 0},     // kern text+rodata
  { (void*)data,     V2P(data),     TOP_PHYSICAL,   PTE_W}, // kern data+memory
  { (void*)DEVICE_SPACE, DEVICE_SPACE,      0,         PTE_W}, // more devices
 };
@@ -126,7 +126,7 @@ alloc_kvm_pgdir(void)
   memset(pgdir, 0, PAGE_SIZE);
   if (P2V(TOP_PHYSICAL) > (void*)DEVICE_SPACE)
     panic("TOP_PHYSICAL too high");
-  for(k = kmap; k < &kmap[NELEM(kmap)]; k++)
+  for(k = kmap; k < &kmap[SIZEOF_ARR(kmap)]; k++)
     if(mappages(pgdir, k->virt, k->phys_end - k->phys_start,
                 (uint)k->phys_start, k->perm) < 0) {
       freevm(pgdir);
@@ -163,15 +163,15 @@ switch2uvm(struct proc *p)// set ltr  and  lcr3
     panic("switch2uvm: no pgdir");
 
   pushcli();
-  mycpu()->gdt[SEG_TSS] = MAKE_SEG_DESCRIPTOR_16(SYS_SEG_TYPE_T32A, &mycpu()->tss,
+  mycpu()->gdt[SEG_TSS_INDEX] = MAKE_SEG_DESCRIPTOR_16(SYS_SEG_TYPE_T32A, &mycpu()->tss,
                                 sizeof(mycpu()->tss)-1, 0);  // 初始化 tss
-  mycpu()->gdt[SEG_TSS].s = 0;
-  mycpu()->tss.ss0 = SEG_KDATA << 3;
+  mycpu()->gdt[SEG_TSS_INDEX].s = 0;
+  mycpu()->tss.ss0 = SEG_KDATA_INDEX << 3;
   mycpu()->tss.esp0 = (uint)p->kstack + KSTACK_SIZE; // 特权级的栈 用户空间发生中断的时候用
   // setting IOPL=0 in eflags *and* iomb beyond the tss segment limit
   // forbids I/O instructions (e.g., inb and outb) from user space
   mycpu()->tss.iomb = (ushort) 0xFFFF;// 没有io开放
-  ltr(SEG_TSS << 3); // 任务标志tss 加载到 tr中
+  ltr(SEG_TSS_INDEX << 3); // 任务标志tss 加载到 tr中
   lcr3(V2P(p->pgdir));  // switch to process's address space  // 加载cr3 用户的页目录表
   popcli();
 }
@@ -264,7 +264,7 @@ deallocuvm(pde_t *pgdir, uint oldsz, uint newsz)
   for(; a  < oldsz; a += PAGE_SIZE){
     pte = walkpgdir(pgdir, (char*)a, 0);
     if(!pte)
-      a = PGADDR(PDX(a) + 1, 0, 0) - PAGE_SIZE;
+      a = PGADDR(PAGE_DIR_INDEX(a) + 1, 0, 0) - PAGE_SIZE;
     else if((*pte & PTE_P) != 0){
       pa = PTE_ADDR(*pte);
       if(pa == 0)
@@ -287,7 +287,7 @@ freevm(pde_t *pgdir)
   if(pgdir == 0)
     panic("freevm: no pgdir");
   deallocuvm(pgdir, KERNBASE, 0);
-  for(i = 0; i < NPDENTRIES; i++){
+  for(i = 0; i < PAGE_DIR_TABLE_ENTRY_SIZE; i++){
     if(pgdir[i] & PTE_P){
       char * v = P2V(PTE_ADDR(pgdir[i]));
       kfree(v);

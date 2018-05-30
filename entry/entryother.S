@@ -41,12 +41,12 @@ start:
   # Complete the transition to 32-bit protected mode by using a long jmp
   # to reload %cs and %eip.  The segment descriptors are set up with no
   # translation, so that the mapping is still the identity mapping.
-  ljmpl   $(SEG_KCODE<<3), $(start32) # 刷新cs 寄存器 转到执行32位的代码
+  ljmpl   $(SEG_KCODE_INDEX<<3), $(start32) # 刷新cs 寄存器 转到执行32位的代码
 
 .code32
 start32:
   # Set up the protected-mode data segment registers
-  movw    $(SEG_KDATA<<3), %ax    # Our data segment selector
+  movw    $(SEG_KDATA_INDEX<<3), %ax    # Our data segment selector
   movw    %ax, %ds                # -> DS: Data Segment
   movw    %ax, %es                # -> ES: Extra Segment
   movw    %ax, %ss                # -> SS: Stack Segment

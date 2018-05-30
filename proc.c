@@ -138,8 +138,8 @@ userinit(void)
   init_initcode_uvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size); // 在刚刚分配的页目录表中初始化initcode.bin 
   p->sz = PAGE_SIZE;// 进程使用的内存大小
   memset(p->tf, 0, sizeof(*p->tf));// 初始化 trapframe
-  p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
-  p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
+  p->tf->cs = (SEG_UCODE_INDEX << 3) | DPL_USER;
+  p->tf->ds = (SEG_UDATA_INDEX << 3) | DPL_USER;
   p->tf->es = p->tf->ds;
   p->tf->ss = p->tf->ds;
   p->tf->eflags = FL_IF; // 开启中断 
@@ -528,7 +528,7 @@ procdump(void)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->state == UNUSED)
       continue;
-    if(p->state >= 0 && p->state < NELEM(states) && states[p->state])
+    if(p->state >= 0 && p->state < SIZEOF_ARR(states) && states[p->state])
       state = states[p->state];
     else
       state = "???";

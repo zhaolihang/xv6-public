@@ -372,7 +372,7 @@ int sys_exec(void) {
     }
     memset(argv, 0, sizeof(argv));
     for (i = 0;; i++) {
-        if (i >= SIZEOF_ARR(argv))
+        if (i >= SIZEOF_ARRAY(argv))
             return -1;
         if (fetchint(uargv + 4 * i, ( int* )&uarg) < 0)
             return -1;

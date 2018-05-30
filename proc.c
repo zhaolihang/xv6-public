@@ -489,7 +489,7 @@ void procdump(void) {
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
         if (p->state == UNUSED)
             continue;
-        if (p->state >= 0 && p->state < SIZEOF_ARR(states) && states[p->state])
+        if (p->state >= 0 && p->state < SIZEOF_ARRAY(states) && states[p->state])
             state = states[p->state];
         else
             state = "???";

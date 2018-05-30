@@ -109,7 +109,7 @@ void syscall(void) {
     struct proc* curproc = myproc();
 
     num = curproc->tf->eax;
-    if (num > 0 && num < SIZEOF_ARR(syscalls) && syscalls[num]) {
+    if (num > 0 && num < SIZEOF_ARRAY(syscalls) && syscalls[num]) {
         curproc->tf->eax = syscalls[num]();
     } else {
         cprintf("%d %s: unknown sys call %d\n", curproc->pid, curproc->name, num);

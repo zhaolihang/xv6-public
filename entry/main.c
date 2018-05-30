@@ -18,7 +18,7 @@ extern char end[];
 int main(void) {
     // phys page allocator 将 end~0x80000000+4*1024*1024 的内存每4k加入到内核内存空闲列表中 现在只有不到4m的内存
     kinit1(end, P2V(4 * 1024 * 1024));
-    initk_kvm_pgdir();    // kernel page table  分配并切换到内核页表
+    init_kvm_pgdir();    // kernel page table  分配并切换到内核页表
     switch2kvm();         // 立即使用该页表 lcr3
     mpinit();             // detect other processors  smp架构获取其他cpu的信息
     lapicinit();          // interrupt controller  配置本地中断控制器
@@ -42,7 +42,7 @@ int main(void) {
 // Other CPUs jump here from entryother.S.
 static void mpenter(void)    // entryother.S 调用这里 但是使用了临时的 page_dirctory_table
 {
-    // initk_kvm_pgdir(); 不需要再分配了因为整个内核使用一份数据 在上面已经初始化过了
+    // init_kvm_pgdir(); 不需要再分配了因为整个内核使用一份数据 在上面已经初始化过了
     switch2kvm();    // 切换到 内核的页目录表 lcr3
     seginit();       // 初始化当前cpu的gdt
     lapicinit();     // 初始化当前cpu的lapic

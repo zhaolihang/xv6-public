@@ -119,7 +119,7 @@ pde_t* alloc_kvm_pgdir(void) {
     memset(pgdir, 0, PAGE_SIZE);
     if (P2V(TOP_PHYSICAL) > ( void* )DEVICE_SPACE)
         panic("TOP_PHYSICAL too high");
-    for (k = kmap; k < &kmap[SIZEOF_ARR(kmap)]; k++)
+    for (k = kmap; k < &kmap[SIZEOF_ARRAY(kmap)]; k++)
         if (mappages(pgdir, k->virt, k->phys_end - k->phys_start, ( uint )k->phys_start, k->perm) < 0) {
             freevm(pgdir);
             return 0;
@@ -129,7 +129,7 @@ pde_t* alloc_kvm_pgdir(void) {
 
 // Allocate one page table for the machine for the kernel address
 // space for scheduler processes.
-void initk_kvm_pgdir(void) {
+void init_kvm_pgdir(void) {
     kpgdir = alloc_kvm_pgdir();    // 分配生成完整的页目录表 和页表  并保存为全局变量 kpgdir
 }
 

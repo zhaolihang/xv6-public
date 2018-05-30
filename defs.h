@@ -172,7 +172,7 @@ void uartputc(int);
 
 // vm.c
 void   seginit(void);
-void   initk_kvm_pgdir(void);
+void   init_kvm_pgdir(void);
 pde_t* alloc_kvm_pgdir(void);
 char*  uva2ka(pde_t*, char*);
 int    allocuvm(pde_t*, uint, uint);
@@ -187,4 +187,4 @@ int    copyout(pde_t*, uint, void*, uint);
 void   clearpteu(pde_t* pgdir, char* uva);
 
 // number of elements in fixed-size array
-#define SIZEOF_ARR(x) (sizeof(x) / sizeof((x)[0]))
+#define SIZEOF_ARRAY(x) (sizeof(x) / sizeof((x)[0]))

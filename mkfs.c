@@ -135,12 +135,12 @@ main(int argc, char *argv[])
       exit(1);
     }
 
-    // Skip leading _ in name when writing to file system.
-    // The binaries are named _rm, _cat, etc. to keep the
+    // Skip leading exec_ in name when writing to file system.
+    // The binaries are named exec_rm, exec_cat, etc. to keep the
     // build operating system from trying to execute them
     // in place of system binaries like rm and cat.
-    if(argv[i][0] == '_')
-      ++argv[i];
+    if(argv[i][0] == 'e'&&argv[i][1] == 'x'&&argv[i][2] == 'e'&&argv[i][3] == 'c'&&argv[i][4] == '_')
+      argv[i]+=5;
 
     inum = ialloc(T_FILE);
 

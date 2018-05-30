@@ -124,35 +124,36 @@ initcode: entry/initcode.S
 	$(OBJCOPY) -S -O binary entry/entry_initcode.o initcode
 	$(OBJDUMP) -S entry/initcode.o > entry/initcode.asm
 
+
 ULIB = ulib.o usys.o printf.o umalloc.o
 
-%_exec: %.o $(ULIB)
+# forktest has less library code linked in - needs to be small
+# in order to be able to max out the proc table.
+exec_forktest: forktest.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o exec_forktest forktest.o ulib.o usys.o
+	$(OBJDUMP) -S exec_forktest > forktest.asm
+
+exec_%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $@ $^
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
-# forktest has less library code linked in - needs to be small
-# in order to be able to max out the proc table.
-forktest_exec: forktest.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o forktest_exec forktest.o ulib.o usys.o
-	$(OBJDUMP) -S forktest_exec > forktest.asm
-
 UPROGS=\
-	cat_exec\
-	echo_exec\
-	forktest_exec\
-	grep_exec\
-	init_exec\
-	kill_exec\
-	ln_exec\
-	ls_exec\
-	mkdir_exec\
-	rm_exec\
-	sh_exec\
-	stressfs_exec\
-	usertests_exec\
-	wc_exec\
-	zombie_exec\
+	exec_cat\
+	exec_echo\
+	exec_grep\
+	exec_init\
+	exec_kill\
+	exec_ln\
+	exec_ls\
+	exec_mkdir\
+	exec_rm\
+	exec_sh\
+	exec_stressfs\
+	exec_usertests\
+	exec_wc\
+	exec_zombie\
+	exec_forktest\
 
 mkfs: mkfs.c fs.h
 	gcc -Werror -Wall -o mkfs mkfs.c

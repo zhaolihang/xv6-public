@@ -13,7 +13,8 @@
         "**/*.d": true,
         "**/*.sym": true,
         "**/*.out": true,
-        "**/*.asm": true
+        "**/*.asm": true,
+        "**/exec_*": true
     },
     "git.ignoreLimitWarning": true
 }

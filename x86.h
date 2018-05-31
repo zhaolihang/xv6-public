@@ -1,3 +1,7 @@
+#ifndef __XV6_X86_H__
+#define __XV6_X86_H__
+
+#include "mmu.h"
 // Routines to let C code use special x86 instructions.
 
 static inline uchar inb(ushort port) {
@@ -42,8 +46,6 @@ static inline void stosl(void* addr, int data, int cnt) {
                 "memory", "cc");
 }
 
-struct segdesc;
-
 static inline void lgdt(struct segdesc* p, int size) {
     volatile ushort pd[3];
 
@@ -53,8 +55,6 @@ static inline void lgdt(struct segdesc* p, int size) {
 
     asm volatile("lgdt (%0)" : : "r"(pd));
 }
-
-struct gatedesc;
 
 static inline void lidt(struct gatedesc* p, int size) {
     volatile ushort pd[3];
@@ -145,3 +145,6 @@ struct trapframe {
     ushort ss;
     ushort padding6;
 };
+
+
+#endif    // #ifndef __XV6_X86_H__

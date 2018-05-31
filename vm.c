@@ -81,12 +81,12 @@ static int mappages(pde_t* pgdir, void* va, uint size, uint pa, int perm) {
 //
 // alloc_kvm_pgdir() and exec() set up every page table like this:
 //
-//   0..KERNBASE: user memory (text+data+stack+heap), mapped to
+//   0..KERNAL_SPACE_BASE: user memory (text+data+stack+heap), mapped to
 //                phys memory allocated by the kernel
-//   KERNBASE..KERNBASE+EXTMEM: mapped to 0..EXTMEM (for I/O space)
-//   KERNBASE+EXTMEM..data: mapped to EXTMEM..V2P(data)
+//   KERNAL_SPACE_BASE..KERNAL_SPACE_BASE+EXTMEM: mapped to 0..EXTMEM (for I/O space)
+//   KERNAL_SPACE_BASE+EXTMEM..data: mapped to EXTMEM..V2P(data)
 //                for the kernel's instructions and r/o data
-//   data..KERNBASE+TOP_PHYSICAL: mapped to V2P(data)..TOP_PHYSICAL,
+//   data..KERNAL_SPACE_BASE+TOP_PHYSICAL: mapped to V2P(data)..TOP_PHYSICAL,
 //                                  rw data + free physical memory
 //   0xfe000000..0: mapped direct (devices such as ioapic)
 //
@@ -102,10 +102,10 @@ static struct kmap {
     uint  phys_end;
     int   perm;
 } kmap[] = {
-    { ( void* )KERNBASE, 0, EXTMEM, PTE_W },              // I/O space
-    { ( void* )KERNEND, V2P(KERNEND), V2P(data), 0 },     // kern text+rodata
-    { ( void* )data, V2P(data), TOP_PHYSICAL, PTE_W },    // kern data+memory
-    { ( void* )DEVICE_SPACE, DEVICE_SPACE, 0, PTE_W },    // more devices
+    { ( void* )KERNAL_SPACE_BASE, 0, EXTMEM, PTE_W },                          // I/O space
+    { ( void* )KERNAL_LINKED_BASE, V2P(KERNAL_LINKED_BASE), V2P(data), 0 },    // kern text+rodata
+    { ( void* )data, V2P(data), TOP_PHYSICAL, PTE_W },                         // kern data+memory
+    { ( void* )DEVICE_SPACE, DEVICE_SPACE, 0, PTE_W },                         // more devices
 };
 
 // Set up kernel part of a page table.
@@ -203,7 +203,7 @@ int allocuvm(pde_t* pgdir, uint oldsz, uint newsz) {
     char* mem;
     uint  a;
 
-    if (newsz >= KERNBASE)
+    if (newsz >= KERNAL_SPACE_BASE)
         return 0;
     if (newsz < oldsz)
         return oldsz;
@@ -262,7 +262,7 @@ void freevm(pde_t* pgdir) {
 
     if (pgdir == 0)
         panic("freevm: no pgdir");
-    deallocuvm(pgdir, KERNBASE, 0);
+    deallocuvm(pgdir, KERNAL_SPACE_BASE, 0);
     for (i = 0; i < PAGE_DIR_TABLE_ENTRY_SIZE; i++) {
         if (pgdir[i] & PTE_P) {
             char* v = P2V(PTE_ADDR(pgdir[i]));

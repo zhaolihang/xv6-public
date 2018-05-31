@@ -102,6 +102,6 @@ static void startothers(void) {
 __attribute__((__aligned__(PAGE_SIZE))) pde_t entry_page_directory[PAGE_DIR_TABLE_ENTRY_SIZE] = {
     // Map VA's [0, 4MB) to PA's [0, 4MB)
     [0] = (0) | PTE_P | PTE_W | PTE_PS,
-    // Map VA's [KERNBASE, KERNBASE+4MB) to PA's [0, 4MB)
-    [KERNBASE >> PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,
+    // Map VA's [KERNAL_SPACE_BASE, KERNAL_SPACE_BASE+4MB) to PA's [0, 4MB)
+    [KERNAL_SPACE_BASE >> PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,
 };

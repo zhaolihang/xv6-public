@@ -1,3 +1,7 @@
+#ifndef __XV6_MMU_H__
+#define __XV6_MMU_H__
+
+#include "types.h"
 // This file contains definitions for the
 // x86 memory management unit (MMU).
 
@@ -77,7 +81,9 @@ struct segdesc {
 { (lim) & 0xffff, (uint)(base) & 0xffff,              \
   ((uint)(base) >> 16) & 0xff, type, 1, dpl, 1,       \
   (uint)(lim) >> 16, 0, 0, 1, 0, (uint)(base) >> 24 }
-#endif
+
+
+#endif    // #ifndef __ASSEMBLER__
 
 #define DPL_USER      0x3     // User DPL
 
@@ -225,4 +231,8 @@ struct gatedesc {
     (gate).off_31_16 = (uint)(off) >> 16;                                \
 }
 
-#endif
+
+#endif    // #ifndef __ASSEMBLER__
+
+
+#endif    // #ifndef __XV6_MMU_H__

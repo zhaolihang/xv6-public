@@ -12,16 +12,19 @@
 
 #define SECTOR_SIZE 512
 
-void readseg(uchar*, uint, uint);
+static void waitdisk(void);
+static void readsector(void* dst, uint offset);
+static void readseg(uchar* pa, uint count, uint offset);
 
-void bootmain(void)    // 加载内核到0x10000 并进入内核
+
+void bootmain(void)    // 加载内核到物理地址0x10000(1m) 并进入内核
 {
     struct elfhdr*  elf;
     struct proghdr *ph, *eph;
     void (*entry)(void);
     uchar* pa;
 
-    elf = ( struct elfhdr* )0x10000;    // 读取到1m以后的内存
+    elf = ( struct elfhdr* )0x10000;
 
     // Read 1st page off disk
     readseg(( uchar* )elf, 4096, 0);
@@ -46,13 +49,13 @@ void bootmain(void)    // 加载内核到0x10000 并进入内核
     entry();
 }
 
-void waitdisk(void) {    // Wait for disk ready.
+static void waitdisk(void) {    // Wait for disk ready.
     while ((inb(0x1F7) & 0xC0) != 0x40)
         ;
 }
 
 // Read a single sector at offset into dst.
-void readsector(void* dst, uint offset) {
+static void readsector(void* dst, uint offset) {
     // Issue command.
     waitdisk();
     outb(0x1F2, 1);    // count = 1
@@ -69,7 +72,7 @@ void readsector(void* dst, uint offset) {
 
 // Read 'count' bytes at 'offset' from kernel into physical address 'pa'.
 // Might copy more than asked.
-void readseg(uchar* pa, uint count, uint offset) {
+static void readseg(uchar* pa, uint count, uint offset) {
     uchar* epa;
 
     epa = pa + count;

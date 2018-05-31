@@ -12,7 +12,7 @@ SECTIONS
 	. = 0x80100000;
 	
 	/*see http://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_mono/ld.html#IDX305 keyworld [AT ( ldadr )] */
-	/* 代码段起始位置放在镜像文件的0x100000地址处 */
+	/* 代码段起始位置放在kernel文件的0x100000地址处 */
 	.text : AT(0x100000) {
 		*(.text .stub .text.* .gnu.linkonce.t.*)
 	}

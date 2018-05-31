@@ -1433,7 +1433,7 @@ void sbrktest(void) {
     }
 
     // can we read the kernel's memory?
-    for (a = ( char* )(KERNAL_SPACE_BASE); a < ( char* )(KERNAL_SPACE_BASE + 2000000); a += 50000) {
+    for (a = ( char* )(VA_KERNAL_SPACE_BASE); a < ( char* )(VA_KERNAL_SPACE_BASE + 2000000); a += 50000) {
         ppid = getpid();
         pid  = fork();
         if (pid < 0) {

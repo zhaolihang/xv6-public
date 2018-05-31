@@ -36,7 +36,7 @@ static pte_t* walkpgdir(pde_t* pgdir, const void* va, int alloc) {
 
     pde = &pgdir[PAGE_DIR_INDEX(va)];
     if (*pde & PTE_P) {
-        pgtab = ( pte_t* )P2V(PTE_ADDR(*pde));
+        pgtab = ( pte_t* )C_P2V(PTE_ADDR(*pde));
     } else {
         if (!alloc || (pgtab = ( pte_t* )kalloc()) == 0)
             return 0;
@@ -45,7 +45,7 @@ static pte_t* walkpgdir(pde_t* pgdir, const void* va, int alloc) {
         // The permissions here are overly generous, but they can
         // be further restricted by the permissions in the page table
         // entries, if necessary.
-        *pde = V2P(pgtab) | PTE_P | PTE_W | PTE_U;
+        *pde = C_V2P(pgtab) | PTE_P | PTE_W | PTE_U;
     }
     return &pgtab[PAGE_TABLE_INDEX(va)];
 }
@@ -81,18 +81,18 @@ static int mappages(pde_t* pgdir, void* va, uint size, uint pa, int perm) {
 //
 // alloc_kvm_pgdir() and exec() set up every page table like this:
 //
-//   0..KERNAL_SPACE_BASE: user memory (text+data+stack+heap), mapped to
+//   0..VA_KERNAL_SPACE_BASE: user memory (text+data+stack+heap), mapped to
 //                phys memory allocated by the kernel
-//   KERNAL_SPACE_BASE..KERNAL_SPACE_BASE+EXTMEM: mapped to 0..EXTMEM (for I/O space)
-//   KERNAL_SPACE_BASE+EXTMEM..data: mapped to EXTMEM..V2P(data)
+//   VA_KERNAL_SPACE_BASE..VA_KERNAL_SPACE_BASE+PHY_EXTMEM_BASE: mapped to 0..PHY_EXTMEM_BASE (for I/O space)
+//   VA_KERNAL_SPACE_BASE+PHY_EXTMEM_BASE..data: mapped to PHY_EXTMEM_BASE..C_V2P(data)
 //                for the kernel's instructions and r/o data
-//   data..KERNAL_SPACE_BASE+TOP_PHYSICAL: mapped to V2P(data)..TOP_PHYSICAL,
+//   data..VA_KERNAL_SPACE_BASE+PHY_TOP_LIMIT: mapped to C_V2P(data)..PHY_TOP_LIMIT,
 //                                  rw data + free physical memory
 //   0xfe000000..0: mapped direct (devices such as ioapic)
 //
 // The kernel allocates physical memory for its heap and for user memory
-// between V2P(end) and the end of physical memory (TOP_PHYSICAL)
-// (directly addressable from end..P2V(TOP_PHYSICAL)).
+// between C_V2P(end) and the end of physical memory (PHY_TOP_LIMIT)
+// (directly addressable from end..C_P2V(PHY_TOP_LIMIT)).
 
 // This table defines the kernel's mappings, which are present in
 // every process's page table.
@@ -102,10 +102,10 @@ static struct kmap {
     uint  phys_end;
     int   perm;
 } kmap[] = {
-    { ( void* )KERNAL_SPACE_BASE, 0, EXTMEM, PTE_W },                          // I/O space
-    { ( void* )KERNAL_LINKED_BASE, V2P(KERNAL_LINKED_BASE), V2P(data), 0 },    // kern text+rodata
-    { ( void* )data, V2P(data), TOP_PHYSICAL, PTE_W },                         // kern data+memory
-    { ( void* )DEVICE_SPACE, DEVICE_SPACE, 0, PTE_W },                         // more devices
+    { ( void* )VA_KERNAL_SPACE_BASE, 0, PHY_EXTMEM_BASE, PTE_W },                          // I/O space
+    { ( void* )VA_KERNAL_LINKED_BASE, C_V2P(VA_KERNAL_LINKED_BASE), C_V2P(data), 0 },    // kern text+rodata
+    { ( void* )data, C_V2P(data), PHY_TOP_LIMIT, PTE_W },                         // kern data+memory
+    { ( void* )PHY_DEVICE_BASE, PHY_DEVICE_BASE, 0, PTE_W },                         // more devices
 };
 
 // Set up kernel part of a page table.
@@ -116,8 +116,8 @@ pde_t* alloc_kvm_pgdir(void) {
     if ((pgdir = ( pde_t* )kalloc()) == 0)
         return 0;
     memset(pgdir, 0, PAGE_SIZE);
-    if (P2V(TOP_PHYSICAL) > ( void* )DEVICE_SPACE)
-        panic("TOP_PHYSICAL too high");
+    if (C_P2V(PHY_TOP_LIMIT) > ( void* )PHY_DEVICE_BASE)
+        panic("PHY_TOP_LIMIT too high");
     for (k = kmap; k < &kmap[SIZEOF_ARRAY(kmap)]; k++)
         if (mappages(pgdir, k->virt, k->phys_end - k->phys_start, ( uint )k->phys_start, k->perm) < 0) {
             freevm(pgdir);
@@ -135,7 +135,7 @@ void init_kvm_pgdir(void) {
 // Switch h/w page table register to the kernel-only page table,
 // for when no process is running.
 void switch2kvm(void) {
-    lcr3(V2P(kpgdir));    // switch to the kernel page table
+    lcr3(C_V2P(kpgdir));    // switch to the kernel page table
 }
 
 // Switch TSS and h/w page table to correspond to process p.
@@ -157,7 +157,7 @@ void switch2uvm(struct proc* p)    // set ltr  and  lcr3
     // forbids I/O instructions (e.g., inb and outb) from user space
     mycpu()->tss.iomb = ( ushort )0xFFFF;    // 没有io开放
     ltr(SEG_TSS_INDEX << 3);                 // 任务标志tss 加载到 tr中
-    lcr3(V2P(p->pgdir));                     // switch to process's address space  // 加载cr3 用户的页目录表
+    lcr3(C_V2P(p->pgdir));                     // switch to process's address space  // 加载cr3 用户的页目录表
     popcli();
 }
 
@@ -171,7 +171,7 @@ void init_initcode_uvm(pde_t* pgdir, char* init, uint sz) {
         panic("init_initcode_uvm: more than a page");
     mem = kalloc();
     memset(mem, 0, PAGE_SIZE);
-    mappages(pgdir, 0, PAGE_SIZE, V2P(mem), PTE_W | PTE_U);
+    mappages(pgdir, 0, PAGE_SIZE, C_V2P(mem), PTE_W | PTE_U);
     memmove(mem, init, sz);
 }
 
@@ -191,7 +191,7 @@ int loaduvm(pde_t* pgdir, char* addr, struct inode* ip, uint offset, uint sz) {
             n = sz - i;
         else
             n = PAGE_SIZE;
-        if (readi(ip, P2V(pa), offset + i, n) != n)
+        if (readi(ip, C_P2V(pa), offset + i, n) != n)
             return -1;
     }
     return 0;
@@ -203,7 +203,7 @@ int allocuvm(pde_t* pgdir, uint oldsz, uint newsz) {
     char* mem;
     uint  a;
 
-    if (newsz >= KERNAL_SPACE_BASE)
+    if (newsz >= VA_KERNAL_SPACE_BASE)
         return 0;
     if (newsz < oldsz)
         return oldsz;
@@ -217,7 +217,7 @@ int allocuvm(pde_t* pgdir, uint oldsz, uint newsz) {
             return 0;
         }
         memset(mem, 0, PAGE_SIZE);
-        if (mappages(pgdir, ( char* )a, PAGE_SIZE, V2P(mem), PTE_W | PTE_U) < 0) {
+        if (mappages(pgdir, ( char* )a, PAGE_SIZE, C_V2P(mem), PTE_W | PTE_U) < 0) {
             cprintf("allocuvm out of memory (2)\n");
             deallocuvm(pgdir, newsz, oldsz);
             kfree(mem);
@@ -247,7 +247,7 @@ int deallocuvm(pde_t* pgdir, uint oldsz, uint newsz) {
             pa = PTE_ADDR(*pte);
             if (pa == 0)
                 panic("kfree");
-            char* v = P2V(pa);
+            char* v = C_P2V(pa);
             kfree(v);
             *pte = 0;
         }
@@ -262,10 +262,10 @@ void freevm(pde_t* pgdir) {
 
     if (pgdir == 0)
         panic("freevm: no pgdir");
-    deallocuvm(pgdir, KERNAL_SPACE_BASE, 0);
+    deallocuvm(pgdir, VA_KERNAL_SPACE_BASE, 0);
     for (i = 0; i < PAGE_DIR_TABLE_ENTRY_SIZE; i++) {
         if (pgdir[i] & PTE_P) {
-            char* v = P2V(PTE_ADDR(pgdir[i]));
+            char* v = C_P2V(PTE_ADDR(pgdir[i]));
             kfree(v);
         }
     }
@@ -302,8 +302,8 @@ pde_t* copyuvm(pde_t* pgdir, uint sz) {
         flags = PTE_FLAGS(*pte);
         if ((mem = kalloc()) == 0)
             goto bad;
-        memmove(mem, ( char* )P2V(pa), PAGE_SIZE);
-        if (mappages(d, ( void* )i, PAGE_SIZE, V2P(mem), flags) < 0)
+        memmove(mem, ( char* )C_P2V(pa), PAGE_SIZE);
+        if (mappages(d, ( void* )i, PAGE_SIZE, C_V2P(mem), flags) < 0)
             goto bad;
     }
     return d;
@@ -323,7 +323,7 @@ char* uva2ka(pde_t* pgdir, char* uva) {
         return 0;
     if ((*pte & PTE_U) == 0)
         return 0;
-    return ( char* )P2V(PTE_ADDR(*pte));
+    return ( char* )C_P2V(PTE_ADDR(*pte));
 }
 
 // Copy len bytes from p to user address va in page table pgdir.

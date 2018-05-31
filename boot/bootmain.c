@@ -17,14 +17,14 @@ static void readsector(void* dst, uint offset);
 static void readseg(uchar* pa, uint count, uint offset);
 
 
-void bootmain(void)    // 加载内核到物理地址0x10000(1m) 并进入内核
+void bootmain(void)    // 加载内核到物理地址 PHY_EXTMEM_BASE 并进入内核
 {
     struct elfhdr*  elf;
     struct proghdr *ph, *eph;
     void (*entry)(void);
     uchar* pa;
 
-    elf = ( struct elfhdr* )0x10000;
+    elf = ( struct elfhdr* )PHY_EXTMEM_BASE;
 
     // Read 1st page off disk
     readseg(( uchar* )elf, 4096, 0);

@@ -17,7 +17,7 @@ extern char end[];
 // doing some setup required for memory allocator to work.
 int main(void) {
     // phys page allocator 将 end~0x80000000+4*1024*1024 的内存每4k加入到内核内存空闲列表中 现在只有不到4m的内存
-    kinit1(end, P2V(4 * 1024 * 1024));
+    kinit1(end, C_P2V(4 * 1024 * 1024));
     init_kvm_pgdir();    // kernel page table  分配并切换到内核页表
     switch2kvm();         // 立即使用该页表 lcr3
     mpinit();             // detect other processors  smp架构获取其他cpu的信息
@@ -34,7 +34,7 @@ int main(void) {
     ideinit();            // disk   初始化硬盘,并且打开ide中断
     startothers();        // start other processors   启动其他cpu 并进入scheduler 函数
     // must come after startothers()  初始化其他的空闲内存
-    kinit2(P2V(4 * 1024 * 1024), P2V(TOP_PHYSICAL));
+    kinit2(C_P2V(4 * 1024 * 1024), C_P2V(PHY_TOP_LIMIT));
     userinit();    // first user process 在进程表中加入第一个用户进程  很重要!!!!!!!!!!!!!!!
     mpmain();      // finish this processor's setup  finish bsp cpu 然后执行scheduler 函数
 }
@@ -70,7 +70,7 @@ static void startothers(void) {
 
     // Write entry code to unused memory at 0x7000.
     // The linker has placed the image of entryother.S in
-    code = P2V(0x7000);
+    code = C_P2V(0x7000);
     // entryother.bin 这段代码写到物理内存0x7000处 因为 entryother.bin 的vstart是0x7000
     memmove(code, _binary_entryother_start, ( uint )_binary_entryother_size);
 
@@ -84,9 +84,9 @@ static void startothers(void) {
         stack = kalloc();                               //  分配4K的栈  stack是栈最低地址处
         *( void** )(code - 4) = stack + KSTACK_SIZE;    // ap使用在内存中分配的栈 ，最高地址处即当前的栈顶
         *( void** )(code - 8) = mpenter;                               // ap cpu的高地址c代码
-        *( int** )(code - 12) = ( void* )V2P(entry_page_directory);    // ap cpu 初始的页目录表物理地址
+        *( int** )(code - 12) = ( void* )C_V2P(entry_page_directory);    // ap cpu 初始的页目录表物理地址
 
-        lapicstartap(c->apicid, V2P(code));    // bsp cpu send message to ap cpu by IPI , CPU之间通信
+        lapicstartap(c->apicid, C_V2P(code));    // bsp cpu send message to ap cpu by IPI , CPU之间通信
 
         // wait for cpu to finish mpmain()
         while (c->started == 0)    //等待该核心启动完成后继续初始化下一个核心
@@ -102,6 +102,6 @@ static void startothers(void) {
 __attribute__((__aligned__(PAGE_SIZE))) pde_t entry_page_directory[PAGE_DIR_TABLE_ENTRY_SIZE] = {
     // Map VA's [0, 4MB) to PA's [0, 4MB)
     [0] = (0) | PTE_P | PTE_W | PTE_PS,
-    // Map VA's [KERNAL_SPACE_BASE, KERNAL_SPACE_BASE+4MB) to PA's [0, 4MB)
-    [KERNAL_SPACE_BASE >> PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,
+    // Map VA's [VA_KERNAL_SPACE_BASE, VA_KERNAL_SPACE_BASE+4MB) to PA's [0, 4MB)
+    [VA_KERNAL_SPACE_BASE >> PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,
 };

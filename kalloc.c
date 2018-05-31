@@ -53,7 +53,7 @@ void freerange(void* vstart, void* vend) {
 void kfree(char* v) {
     struct run* r;
 
-    if (( uint )v % PAGE_SIZE || v < end || V2P(v) >= TOP_PHYSICAL)
+    if (( uint )v % PAGE_SIZE || v < end || C_V2P(v) >= PHY_TOP_LIMIT)
         panic("kfree");
 
     // Fill with junk to catch dangling refs.

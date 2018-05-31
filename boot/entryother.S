@@ -1,4 +1,4 @@
-#include "asm.h"
+#include "./asm.h"
 #include "memlayout.h"
 #include "mmu.h"
 	

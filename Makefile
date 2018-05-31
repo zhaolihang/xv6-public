@@ -79,8 +79,8 @@ KERNEL_OBJS = \
 	uart.o\
 	vectors.o\
 	vm.o\
-	entry/main.o\
-	entry/entry.o\
+	boot/main.o\
+	boot/entry.o\
 
 #xv6.img
 xv6.img: bootblock kernel fs.img   #执行make 会默认生成第一个目标
@@ -111,18 +111,18 @@ vectors.S: vectors.pl
 	perl vectors.pl > vectors.S
 
 #entryother
-entryother: entry/entryother.S
-	$(CC) $(CFLAGS) -c entry/entryother.S -o entry/entryother.o
-	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o entry/bootblock_entryother.o entry/entryother.o
-	$(OBJCOPY) -S -O binary -j .text entry/bootblock_entryother.o entryother
-	$(OBJDUMP) -S entry/bootblock_entryother.o > entry/entryother.asm
+entryother: boot/entryother.S
+	$(CC) $(CFLAGS) -c boot/entryother.S -o boot/entryother.o
+	$(LD) $(LDFLAGS) -N -e start -Ttext 0x7000 -o boot/bootblock_entryother.o boot/entryother.o
+	$(OBJCOPY) -S -O binary -j .text boot/bootblock_entryother.o entryother
+	$(OBJDUMP) -S boot/bootblock_entryother.o > boot/entryother.asm
 
 #initcode
-initcode: entry/initcode.S
-	$(CC) $(CFLAGS) -c entry/initcode.S -o entry/initcode.o
-	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o entry/entry_initcode.o entry/initcode.o
-	$(OBJCOPY) -S -O binary entry/entry_initcode.o initcode
-	$(OBJDUMP) -S entry/initcode.o > entry/initcode.asm
+initcode: boot/initcode.S
+	$(CC) $(CFLAGS) -c boot/initcode.S -o boot/initcode.o
+	$(LD) $(LDFLAGS) -N -e start -Ttext 0 -o boot/entry_initcode.o boot/initcode.o
+	$(OBJCOPY) -S -O binary boot/entry_initcode.o initcode
+	$(OBJDUMP) -S boot/initcode.o > boot/initcode.asm
 
 
 ULIB_SYS_OBJS = user_lib/ulib.o user_lib/usys.o

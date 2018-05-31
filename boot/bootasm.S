@@ -1,4 +1,4 @@
-#include "asm.h"
+#include "./asm.h"
 #include "memlayout.h"
 #include "mmu.h"
 
@@ -61,7 +61,7 @@ start32:
   movw    %ax, %gs                # -> GS
 
   # Set up the stack pointer and call into C.
-  movl    $start, %esp
+  movl    $start, %esp # 0x7c00以下作为栈
   call    bootmain # in bootmain.c
 
 spin:

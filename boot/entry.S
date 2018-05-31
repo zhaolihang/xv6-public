@@ -30,7 +30,7 @@ multiboot_header:
   .long (-magic-flags)
 
 
-#include "asm.h"
+#include "./asm.h"
 #include "memlayout.h"
 #include "mmu.h"
 #include "param.h"

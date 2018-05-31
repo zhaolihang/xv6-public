@@ -10,7 +10,8 @@ SECTIONS
 	/* Link the kernel at this address: "." means the current address */
 	/* Must be equal to VA_KERNAL_LINKED_BASE */
 	. = 0x80100000;
-
+	
+	/*see http://ftp.gnu.org/old-gnu/Manuals/ld-2.9.1/html_mono/ld.html#IDX305 keyworld [AT ( ldadr )] */
 	.text : AT(0x100000) {
 		*(.text .stub .text.* .gnu.linkonce.t.*)
 	}

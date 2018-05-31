@@ -8,7 +8,7 @@ ENTRY(entry_start)
 SECTIONS
 {
 	/* Link the kernel at this address: "." means the current address */
-        /* Must be equal to VA_KERNAL_LINKED_BASE */
+	/* Must be equal to VA_KERNAL_LINKED_BASE */
 	. = 0x80100000;
 
 	.text : AT(0x100000) {

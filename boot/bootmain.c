@@ -16,14 +16,14 @@ static void readsector(void* dst, uint offset);
 static void readseg(uchar* pa, uint count, uint offset);
 
 
-void bootmain(void)    // 加载内核到物理地址 0x10000(1m) 并进入内核
+void bootmain(void)    // 加载内核到物理地址 0x10000(64k) 并进入内核
 {
     struct elfhdr*  elf;
-    struct proghdr *ph, *eph;
+    struct proghdr *ph, *ph_end;
     void (*entry)(void);
-    uchar* pa;
+    uchar* phy_addr;
 
-    elf = ( struct elfhdr* )0x10000;
+    elf = ( struct elfhdr* )0x10000;    // (64k)
 
     // Read 1st page off disk
     readseg(( uchar* )elf, 4096, 0);
@@ -33,13 +33,13 @@ void bootmain(void)    // 加载内核到物理地址 0x10000(1m) 并进入内�
         return;    // let bootasm.S handle error
 
     // Load each program segment (ignores ph flags).
-    ph  = ( struct proghdr* )(( uchar* )elf + elf->phoff);
-    eph = ph + elf->phnum;
-    for (; ph < eph; ph++) {
-        pa = ( uchar* )ph->paddr;
-        readseg(pa, ph->filesz, ph->off);
+    ph     = ( struct proghdr* )(( uchar* )elf + elf->phoff);
+    ph_end = ph + elf->phnum;
+    for (; ph < ph_end; ph++) {
+        phy_addr = ( uchar* )ph->paddr;
+        readseg(phy_addr, ph->filesz, ph->off);
         if (ph->memsz > ph->filesz)    // 初始化 预留的数据段 或由于对齐 空着的无效数据
-            stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz);
+            stosb(phy_addr + ph->filesz, 0, ph->memsz - ph->filesz);
     }
 
     // Call the entry point from the ELF header.

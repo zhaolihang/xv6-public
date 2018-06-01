@@ -7,6 +7,7 @@
 
 #include "types.h"
 #include "elf.h"
+#include "memlayout.h"
 #include "x86.h"
 
 #define SECTOR_SIZE 512
@@ -43,7 +44,7 @@ void bootmain(void)    // 加载内核到物理地址 0x10000(64k) 并进入内�
     }
 
     // Call the entry point from the ELF header.  Does not return!
-    entry = (void (*)(void))(elf->entry);    // entry.S 中的 entry_start
+    entry = (void (*)(void))(C_V2P(elf->entry));    // entry.S 中的 entry
     entry();
 }
 

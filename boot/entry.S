@@ -35,14 +35,8 @@ multiboot_header:
 #include "mmu.h"
 #include "param.h"
 
-#  本代码运行在未开启分页的保护模式下,线性地址就是物理地址 但是连接器的起始地址在0x80000000 
+#  本代码运行在未开启分页的保护模式下,线性地址就是物理地址 但是kernel起始地址在0x80000000
 #  当使用物理地址的时候需要变换
-
-# By convention, the entry_start symbol specifies the ELF entry point.
-# Since we haven't set up virtual memory yet, our entry point is
-# the physical address of 'entry'.
-.globl entry_start
-entry_start = ASM_V2P(entry)
 
 # Entering xv6 on boot processor, with paging off.
 .globl entry

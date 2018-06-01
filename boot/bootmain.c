@@ -12,8 +12,8 @@
 #define SECTOR_SIZE 512
 
 static void wait_disk(void);
-static void read_sector(void* dst, uint offset);
-static void read_seg(uchar* pa, uint count, uint offset);
+static void read_sector(void*, uint);
+static void read_seg(uchar*, uint, uint);
 
 
 void bootmain(void)    // 加载内核到物理地址 0x10000(64k) 并进入内核

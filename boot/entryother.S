@@ -66,7 +66,7 @@ start32:
   orl     $(CR0_PE|CR0_PG|CR0_WP), %eax
   movl    %eax, %cr0 #  开启分页
 
-  # Switch to the stack allocated by startothers()
+  # Switch to the stack allocated by start_others()
   movl    (start-4), %esp  #  设置这个cpu的单独栈
   # Call mpenter()  in main.c
   call	 *(start-8) # mpenter函数 的虚拟地址是由bsp 设置在物理地址 (0x7000-8)处, mpenter在内核的高地址处 这样就调转到了高地址处了

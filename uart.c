@@ -42,7 +42,7 @@ void uartinit(void) {
     ioapicenable(IRQ_COM1, 0);
 
     // Announce that we're here.
-    for (p = "xv6...\n"; *p; p++)
+    for (p = "xv6 uartinit ok !\n"; *p; p++)
         uartputc(*p);
 }
 

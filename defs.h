@@ -171,20 +171,20 @@ void uartintr(void);
 void uartputc(int);
 
 // vm.c
-void   seginit(void);
-void   init_kvm_pgdir(void);
-pde_t* alloc_kvm_pgdir(void);
-char*  uva2ka(pde_t*, char*);
-int    allocuvm(pde_t*, uint, uint);
-int    deallocuvm(pde_t*, uint, uint);
-void   freevm(pde_t*);
-void   init_initcode_uvm(pde_t*, char*, uint);
-int    loaduvm(pde_t*, char*, struct inode*, uint, uint);
-pde_t* copyuvm(pde_t*, uint);
-void   switch2uvm(struct proc*);
-void   switch2kvm(void);
-int    copyout(pde_t*, uint, void*, uint);
-void   clearpteu(pde_t* pgdir, char* uva);
+void      seginit(void);
+void      init_kvm_pgdir(void);
+pgtabe_t* alloc_kvm_pgdir(void);
+char*     uva2ka(pgtabe_t*, char*);
+int       allocuvm(pgtabe_t*, uint, uint);
+int       deallocuvm(pgtabe_t*, uint, uint);
+void      freevm(pgtabe_t*);
+void      init_initcode_uvm(pgtabe_t*, char*, uint);
+int       loaduvm(pgtabe_t*, char*, struct inode*, uint, uint);
+pgtabe_t* copyuvm(pgtabe_t*, uint);
+void      switch2uvm(struct proc*);
+void      switch2kvm(void);
+int       copyout(pgtabe_t*, uint, void*, uint);
+void      clearpteu(pgtabe_t* pgdir, char* uva);
 
 // number of elements in fixed-size array
 #define SIZEOF_ARRAY(x) (sizeof(x) / sizeof((x)[0]))

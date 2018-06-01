@@ -15,7 +15,7 @@ int exec(char* path, char** argv)    // 在内核中执行 使用的是进程的
     struct elfhdr  elf;
     struct inode*  ip;
     struct proghdr ph;
-    pde_t *        pgdir, *oldpgdir;
+    pgtabe_t *     pgdir, *oldpgdir;
     struct proc*   curproc = myproc();
 
     begin_op();

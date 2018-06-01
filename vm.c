@@ -53,7 +53,7 @@ static pte_t* walkpgdir(pde_t* pgdir, const void* va, int alloc) {
 // Create PTEs for virtual addresses starting at va that refer to
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
-static int mappages(pde_t* pgdir, void* va, uint size, uint pa, int perm) {
+static int mappages(pde_t* pgdir, void* va, uint size, uint pa, int permission) {
     char * a, *last;
     pte_t* pte;
 
@@ -64,7 +64,7 @@ static int mappages(pde_t* pgdir, void* va, uint size, uint pa, int perm) {
             return -1;
         if (*pte & PTE_P)
             panic("remap");
-        *pte = pa | perm | PTE_P;
+        *pte = pa | permission | PTE_P;
         if (a == last)
             break;
         a += PAGE_SIZE;
@@ -100,12 +100,12 @@ static struct kmap {
     void* virt;
     uint  phys_start;
     uint  phys_end;
-    int   perm;
+    int   permission;
 } kmap[] = {
-    { ( void* )VA_KERNAL_SPACE_BASE, 0, PHY_EXTMEM_BASE, PTE_W },                          // I/O space
+    { ( void* )VA_KERNAL_SPACE_BASE, 0, PHY_EXTMEM_BASE, PTE_W },                        // I/O space
     { ( void* )VA_KERNAL_LINKED_BASE, C_V2P(VA_KERNAL_LINKED_BASE), C_V2P(data), 0 },    // kern text+rodata
-    { ( void* )data, C_V2P(data), PHY_TOP_LIMIT, PTE_W },                         // kern data+memory
-    { ( void* )PHY_DEVICE_BASE, PHY_DEVICE_BASE, 0, PTE_W },                         // more devices
+    { ( void* )data, C_V2P(data), PHY_TOP_LIMIT, PTE_W },                                // kern data+memory
+    { ( void* )PHY_DEVICE_BASE, PHY_DEVICE_BASE, 0, PTE_W },                             // more devices
 };
 
 // Set up kernel part of a page table.
@@ -119,7 +119,7 @@ pde_t* alloc_kvm_pgdir(void) {
     if (C_P2V(PHY_TOP_LIMIT) > ( void* )PHY_DEVICE_BASE)
         panic("PHY_TOP_LIMIT too high");
     for (k = kmap; k < &kmap[SIZEOF_ARRAY(kmap)]; k++)
-        if (mappages(pgdir, k->virt, k->phys_end - k->phys_start, ( uint )k->phys_start, k->perm) < 0) {
+        if (mappages(pgdir, k->virt, k->phys_end - k->phys_start, ( uint )k->phys_start, k->permission) < 0) {
             freevm(pgdir);
             return 0;
         }
@@ -157,7 +157,7 @@ void switch2uvm(struct proc* p)    // set ltr  and  lcr3
     // forbids I/O instructions (e.g., inb and outb) from user space
     mycpu()->tss.iomb = ( ushort )0xFFFF;    // 没有io开放
     ltr(SEG_TSS_INDEX << 3);                 // 任务标志tss 加载到 tr中
-    lcr3(C_V2P(p->pgdir));                     // switch to process's address space  // 加载cr3 用户的页目录表
+    lcr3(C_V2P(p->pgdir));                   // switch to process's address space  // 加载cr3 用户的页目录表
     popcli();
 }
 

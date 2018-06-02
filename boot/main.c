@@ -81,7 +81,7 @@ static void start_others(void) {
         // Tell entryother.S what stack to use, where to enter, and what
         // pgdir to use. We cannot use kernel_page_dir yet, because the AP processor
         // is running in low  memory, so we use entry_page_directory for the APs too.
-        stack                 = kalloc();                                //  分配4K的栈  stack是栈最低地址处
+        stack                 = kalloc_page();                           //  分配4K的栈  stack是栈最低地址处
         *( void** )(code - 4) = stack + KSTACK_SIZE;                     // ap使用在内存中分配的栈 ，最高地址处即当前的栈顶
         *( void** )(code - 8) = mpenter;                                 // ap cpu的高地址c代码
         *( int** )(code - 12) = ( void* )C_V2P(entry_page_directory);    // ap cpu 初始的页目录表物理地址

@@ -18,7 +18,7 @@ no user area: no magic kernel stack mapping
   so no copying of kernel stack during fork
   though there is a kernel stack page for each process
 
-no kernel malloc(), just kalloc() for user core
+no kernel malloc(), just kalloc_page() for user core
 
 user pointers aren't valid in the kernel
 
@@ -95,7 +95,7 @@ inode->count counts in-memory pointers to the struct
 blocks and inodes have ad-hoc sleep-locks
   provide a single mechanism?
 
-kalloc() can return 0; do callers handle this right?
+kalloc_page() can return 0; do callers handle this right?
 
 test: one process unlinks a file while another links to it
 test: one process opens a file while another deletes it

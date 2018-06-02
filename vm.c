@@ -28,15 +28,15 @@ void seginit(void) {
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-static pte_t* walkpgdir(pgtabe_t* pgdir, const void* va, int alloc) {
+static pgtabe_t* walkpgdir(pgtabe_t* pgdir, const void* va, bool alloc) {
     pgtabe_t* pde;
-    pte_t*    pgtab;
+    pgtabe_t* pgtab;
 
     pde = &pgdir[PAGE_DIR_INDEX(va)];
     if (*pde & PTE_P) {
-        pgtab = ( pte_t* )C_P2V(PTE_ADDR(*pde));
+        pgtab = ( pgtabe_t* )C_P2V(PTE_ADDR(*pde));
     } else {
-        if (!alloc || (pgtab = ( pte_t* )kalloc()) == 0)
+        if (!alloc || (pgtab = ( pgtabe_t* )kalloc_page()) == 0)
             return 0;
         // Make sure all those PTE_P bits are zero.
         memset(pgtab, 0, PAGE_SIZE);
@@ -52,22 +52,24 @@ static pte_t* walkpgdir(pgtabe_t* pgdir, const void* va, int alloc) {
 // physical addresses starting at pa. va and size might not
 // be page-aligned.
 static int mappages(pgtabe_t* pgdir, void* va, uint size, uint pa, int permission) {
-    char * a, *last;
-    pte_t* pte;
+    char *    start, *last;
+    pgtabe_t* pte;
 
-    a    = ( char* )PAGE_ROUNDDOWN(( uint )va);
-    last = ( char* )PAGE_ROUNDDOWN((( uint )va) + size - 1);
+    start = ( char* )PAGE_ROUNDDOWN(( uint )va);
+    last  = ( char* )PAGE_ROUNDDOWN((( uint )va) + size - 1);
+
     for (;;) {
-        if ((pte = walkpgdir(pgdir, a, 1)) == 0)
+        if ((pte = walkpgdir(pgdir, start, true)) == 0)
             return -1;
         if (*pte & PTE_P)
             panic("remap");
         *pte = pa | permission | PTE_P;
-        if (a == last)
+        if (start == last)
             break;
-        a += PAGE_SIZE;
+        start += PAGE_SIZE;
         pa += PAGE_SIZE;
     }
+
     return 0;
 }
 
@@ -114,7 +116,7 @@ pgtabe_t* alloc_kvm_pgdir(void) {
     pgtabe_t*           pgdir;
     struct mem_mapping* mapping;
 
-    if ((pgdir = ( pgtabe_t* )kalloc()) == 0)
+    if ((pgdir = ( pgtabe_t* )kalloc_page()) == 0)
         return 0;
 
     memset(pgdir, 0, PAGE_SIZE);
@@ -176,7 +178,7 @@ void init_initcode_uvm(pgtabe_t* pgdir, char* init, uint sz) {
 
     if (sz >= PAGE_SIZE)    //不能大于4k
         panic("init_initcode_uvm: more than a page");
-    mem = kalloc();
+    mem = kalloc_page();
     memset(mem, 0, PAGE_SIZE);
     mappages(pgdir, 0, PAGE_SIZE, C_V2P(mem), PTE_W | PTE_U);
     memmove(mem, init, sz);
@@ -185,13 +187,13 @@ void init_initcode_uvm(pgtabe_t* pgdir, char* init, uint sz) {
 // Load a program segment into pgdir.  addr must be page-aligned
 // and the pages from addr to addr+sz must already be mapped.
 int loaduvm(pgtabe_t* pgdir, char* addr, struct inode* ip, uint offset, uint sz) {
-    uint   i, pa, n;
-    pte_t* pte;
+    uint      i, pa, n;
+    pgtabe_t* pte;
 
     if (( uint )addr % PAGE_SIZE != 0)
         panic("loaduvm: addr must be page aligned");
     for (i = 0; i < sz; i += PAGE_SIZE) {
-        if ((pte = walkpgdir(pgdir, addr + i, 0)) == 0)
+        if ((pte = walkpgdir(pgdir, addr + i, false)) == 0)
             panic("loaduvm: address should exist");
         pa = PTE_ADDR(*pte);
         if (sz - i < PAGE_SIZE)
@@ -217,7 +219,7 @@ int allocuvm(pgtabe_t* pgdir, uint oldsz, uint newsz) {
 
     a = PAGE_ROUNDUP(oldsz);
     for (; a < newsz; a += PAGE_SIZE) {
-        mem = kalloc();
+        mem = kalloc_page();
         if (mem == 0) {
             cprintf("allocuvm out of memory\n");
             deallocuvm(pgdir, newsz, oldsz);
@@ -227,7 +229,7 @@ int allocuvm(pgtabe_t* pgdir, uint oldsz, uint newsz) {
         if (mappages(pgdir, ( char* )a, PAGE_SIZE, C_V2P(mem), PTE_W | PTE_U) < 0) {
             cprintf("allocuvm out of memory (2)\n");
             deallocuvm(pgdir, newsz, oldsz);
-            kfree(mem);
+            kfree_page(mem);
             return 0;
         }
     }
@@ -239,23 +241,23 @@ int allocuvm(pgtabe_t* pgdir, uint oldsz, uint newsz) {
 // need to be less than oldsz.  oldsz can be larger than the actual
 // process size.  Returns the new process size.
 int deallocuvm(pgtabe_t* pgdir, uint oldsz, uint newsz) {
-    pte_t* pte;
-    uint   a, pa;
+    pgtabe_t* pte;
+    uint      a, pa;
 
     if (newsz >= oldsz)
         return oldsz;
 
     a = PAGE_ROUNDUP(newsz);
     for (; a < oldsz; a += PAGE_SIZE) {
-        pte = walkpgdir(pgdir, ( char* )a, 0);
+        pte = walkpgdir(pgdir, ( char* )a, false);
         if (!pte)
             a = PGADDR(PAGE_DIR_INDEX(a) + 1, 0, 0) - PAGE_SIZE;
         else if ((*pte & PTE_P) != 0) {
             pa = PTE_ADDR(*pte);
             if (pa == 0)
-                panic("kfree");
+                panic("kfree_page");
             char* v = C_P2V(pa);
-            kfree(v);
+            kfree_page(v);
             *pte = 0;
         }
     }
@@ -273,18 +275,18 @@ void freevm(pgtabe_t* pgdir) {
     for (i = 0; i < PAGE_DIR_TABLE_ENTRY_SIZE; i++) {
         if (pgdir[i] & PTE_P) {
             char* v = C_P2V(PTE_ADDR(pgdir[i]));
-            kfree(v);
+            kfree_page(v);
         }
     }
-    kfree(( char* )pgdir);
+    kfree_page(( char* )pgdir);
 }
 
 // Clear PTE_U on a page. Used to create an inaccessible
 // page beneath the user stack.
 void clearpteu(pgtabe_t* pgdir, char* uva) {
-    pte_t* pte;
+    pgtabe_t* pte;
 
-    pte = walkpgdir(pgdir, uva, 0);
+    pte = walkpgdir(pgdir, uva, false);
     if (pte == 0)
         panic("clearpteu");
     *pte &= ~PTE_U;
@@ -294,20 +296,20 @@ void clearpteu(pgtabe_t* pgdir, char* uva) {
 // of it for a child.
 pgtabe_t* copyuvm(pgtabe_t* pgdir, uint sz) {
     pgtabe_t* d;
-    pte_t*    pte;
+    pgtabe_t* pte;
     uint      pa, i, flags;
     char*     mem;
 
     if ((d = alloc_kvm_pgdir()) == 0)
         return 0;
     for (i = 0; i < sz; i += PAGE_SIZE) {
-        if ((pte = walkpgdir(pgdir, ( void* )i, 0)) == 0)
+        if ((pte = walkpgdir(pgdir, ( void* )i, false)) == 0)
             panic("copyuvm: pte should exist");
         if (!(*pte & PTE_P))
             panic("copyuvm: page not present");
         pa    = PTE_ADDR(*pte);
         flags = PTE_FLAGS(*pte);
-        if ((mem = kalloc()) == 0)
+        if ((mem = kalloc_page()) == 0)
             goto bad;
         memmove(mem, ( char* )C_P2V(pa), PAGE_SIZE);
         if (mappages(d, ( void* )i, PAGE_SIZE, C_V2P(mem), flags) < 0)
@@ -323,9 +325,9 @@ bad:
 //PAGEBREAK!
 // Map user virtual address to kernel address.
 char* uva2ka(pgtabe_t* pgdir, char* uva) {
-    pte_t* pte;
+    pgtabe_t* pte;
 
-    pte = walkpgdir(pgdir, uva, 0);
+    pte = walkpgdir(pgdir, uva, false);
     if ((*pte & PTE_P) == 0)
         return 0;
     if ((*pte & PTE_U) == 0)

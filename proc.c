@@ -84,7 +84,7 @@ found:
     release(&ptable.lock);
 
     // Allocate kernel stack.
-    if ((p->kstack = kalloc()) == 0) {    //分配一个4k的空闲内存作为内核栈
+    if ((p->kstack = kalloc_page()) == 0) {    //分配一个4k的空闲内存作为内核栈
         p->state = UNUSED;                // 栈空间分配失败返还这个结构体
         return 0;
     }
@@ -183,7 +183,7 @@ int fork(void) {
 
     // Copy process state from proc.
     if ((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0) {
-        kfree(np->kstack);
+        kfree_page(np->kstack);
         np->kstack = 0;
         np->state  = UNUSED;
         return -1;
@@ -275,7 +275,7 @@ int wait(void) {
             if (p->state == ZOMBIE) {
                 // Found one.
                 pid = p->pid;
-                kfree(p->kstack);
+                kfree_page(p->kstack);
                 p->kstack = 0;
                 freevm(p->pgdir);
                 p->pid     = 0;

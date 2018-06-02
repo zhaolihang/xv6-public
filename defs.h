@@ -63,9 +63,9 @@ void         ioapicenable(int irq, int cpu);
 extern uchar ioapicid;
 void         ioapicinit(void);
 
-// kalloc.c
-char* kalloc(void);
-void  kfree(char*);
+// kalloc_page.c
+char* kalloc_page(void);
+void  kfree_page(char*);
 void  init_kernel_mem_1(void*, void*);
 void  init_kernel_mem_2(void*, void*);
 

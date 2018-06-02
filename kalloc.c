@@ -41,16 +41,16 @@ void init_kernel_mem_2(void* vstart, void* vend) {
 static void freerange(void* vstart, void* vend) {
     char* p = ( char* )PAGE_ROUNDUP(( uint )vstart);    //p2align
     for (; p + PAGE_SIZE <= ( char* )vend; p += PAGE_SIZE)
-        kfree(p);
+        kfree_page(p);
 }
 
 // Free the page of physical memory pointed at by v,
-// which normally should have been returned by a call to kalloc().
+// which normally should have been returned by a call to kalloc_page().
 // (The exception is when initializing the allocator; see kinit above.)
-void kfree(char* v) {
+void kfree_page(char* v) {
 
     if (( uint )v % PAGE_SIZE || v < kernel_end || C_V2P(v) >= PHY_TOP_LIMIT)
-        panic("kfree");
+        panic("kfree_page");
 
     struct linked_list_node* free_node = ( struct linked_list_node* )v;
     // memset(free_node, 1, PAGE_SIZE);    // Fill with junk to catch dangling refs.    // for performance
@@ -68,7 +68,7 @@ void kfree(char* v) {
 // Allocate one 4096-byte page of physical memory.
 // Returns a pointer that the kernel can use.
 // Returns 0 if the memory cannot be allocated.
-char* kalloc(void) {
+char* kalloc_page(void) {
     struct linked_list_node* free_node;
 
     if (kmem.use_lock)

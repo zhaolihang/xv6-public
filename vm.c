@@ -72,7 +72,7 @@ static int mappages(pgtabe_t* pgdir, void* va, uint size, uint pa, int permissio
 }
 
 // There is one page table per process, plus one that's used when
-// a CPU is not running any process (kern_page_dir). The kernel uses the
+// a CPU is not running any process (kernel_page_dir). The kernel uses the
 // current process's page table during system calls and interrupts;
 // page protection bits prevent user code from using the kernel's
 // mappings.
@@ -95,48 +95,54 @@ static int mappages(pgtabe_t* pgdir, void* va, uint size, uint pa, int permissio
 // This table defines the kernel's mappings, which are present in
 // every process's page table.
 
-static struct kmap {
-    void* virt;
+struct mem_mapping {
+    void* vir_start;
     uint  phys_start;
     uint  phys_end;
     int   permission;
-} kmap[] = {
-    { ( void* )VA_KERNAL_SPACE_BASE, 0, PHY_EXTMEM_BASE, PTE_W },                        // I/O space
+};
+
+static struct mem_mapping kernel_mapping[] = {
+    { ( void* )VA_KERNAL_SPACE_BASE, 0, PHY_EXTMEM_BASE, PTE_W },                              // I/O space
     { ( void* )VA_KERNAL_LINKED_BASE, C_V2P(VA_KERNAL_LINKED_BASE), C_V2P(data_start), 0 },    // kern text+rodata
-    { ( void* )data_start, C_V2P(data_start), PHY_TOP_LIMIT, PTE_W },                                // kern data_start+memory
-    { ( void* )PHY_DEVICE_BASE, PHY_DEVICE_BASE, 0, PTE_W },                             // more devices
+    { ( void* )data_start, C_V2P(data_start), PHY_TOP_LIMIT, PTE_W },                          // kern data_start+memory
+    { ( void* )PHY_DEVICE_BASE, PHY_DEVICE_BASE, 0, PTE_W },                                   // more devices
 };
 
 // Set up kernel part of a page table.
 pgtabe_t* alloc_kvm_pgdir(void) {
-    pgtabe_t*    pgdir;
-    struct kmap* k;
+    pgtabe_t*           pgdir;
+    struct mem_mapping* mapping;
 
     if ((pgdir = ( pgtabe_t* )kalloc()) == 0)
         return 0;
+
     memset(pgdir, 0, PAGE_SIZE);
+
     if (C_P2V(PHY_TOP_LIMIT) > ( void* )PHY_DEVICE_BASE)
         panic("PHY_TOP_LIMIT too high");
-    for (k = kmap; k < &kmap[SIZEOF_ARRAY(kmap)]; k++)
-        if (mappages(pgdir, k->virt, k->phys_end - k->phys_start, ( uint )k->phys_start, k->permission) < 0) {
+
+    for (mapping = kernel_mapping; mapping < &kernel_mapping[SIZEOF_ARRAY(kernel_mapping)]; mapping++)
+        if (mappages(pgdir, mapping->vir_start, mapping->phys_end - mapping->phys_start, ( uint )mapping->phys_start, mapping->permission) < 0) {
             freevm(pgdir);
             return 0;
         }
+
     return pgdir;
 }
 
 // Allocate one page table for the machine for the kernel address
 // space for scheduler processes.
-static pgtabe_t* kern_page_dir;    // for use in scheduler()
+static pgtabe_t* kernel_page_dir;    // for use in scheduler()  所有cpu共用
 
 void init_kvm_pgdir(void) {
-    kern_page_dir = alloc_kvm_pgdir();    // 分配生成完整的页目录表 和页表  并保存为全局变量 kern_page_dir
+    kernel_page_dir = alloc_kvm_pgdir();    // 分配生成完整的页目录表 和页表  并保存为全局变量 kernel_page_dir
 }
 
 // Switch h/w page table register to the kernel-only page table,
 // for when no process is running.
 void switch2kvm(void) {
-    lcr3(C_V2P(kern_page_dir));    // switch to the kernel page table
+    lcr3(C_V2P(kernel_page_dir));    // switch to the kernel page table
 }
 
 // Switch TSS and h/w page table to correspond to process p.

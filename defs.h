@@ -66,8 +66,8 @@ void         ioapicinit(void);
 // kalloc.c
 char* kalloc(void);
 void  kfree(char*);
-void  kinit1(void*, void*);
-void  kinit2(void*, void*);
+void  init_kernel_mem_1(void*, void*);
+void  init_kernel_mem_2(void*, void*);
 
 // kbd.c
 void kbdintr(void);

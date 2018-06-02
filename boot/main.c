@@ -15,9 +15,9 @@ static void mp_main(void) __attribute__((noreturn));
 // doing some setup required for memory allocator to work.
 int main(void) {
     // phys page allocator 将 kernel_end~0x80000000+4*1024*1024 的内存每4k加入到内核内存空闲列表中 现在只有不到4m的内存
-    kinit1(kernel_end, C_P2V(4 * 1024 * 1024));
-    init_kvm_pgdir();    // kernel page table  分配并切换到内核页表
-    switch2kvm();        // 立即使用该页表 lcr3
+    init_kernel_mem_1(kernel_end, C_P2V(4 * 1024 * 1024));
+    init_kvm_pgdir();    // 分配 kernel page directory table
+    switch2kvm();        // 换到内核页表 lcr3
     mpinit();            // detect other processors  smp架构获取其他cpu的信息
     lapicinit();         // interrupt controller  配置本地中断控制器
     seginit();           // segment descriptors  设置当前cpu的gdt
@@ -32,7 +32,7 @@ int main(void) {
     ideinit();           // disk   初始化硬盘,并且打开ide中断
     start_others();      // start other processors   启动其他cpu 并进入scheduler 函数
     // must come after start_others()  初始化其他的空闲内存
-    kinit2(C_P2V(4 * 1024 * 1024), C_P2V(PHY_TOP_LIMIT));
+    init_kernel_mem_2(C_P2V(4 * 1024 * 1024), C_P2V(PHY_TOP_LIMIT));
     userinit();    // first user process 在进程表中加入第一个用户进程  很重要!!!!!!!!!!!!!!!
     mp_main();     // finish this processor's setup  finish bsp cpu 然后执行scheduler 函数
 }
@@ -79,7 +79,7 @@ static void start_others(void) {
             continue;
 
         // Tell entryother.S what stack to use, where to enter, and what
-        // pgdir to use. We cannot use kern_page_dir yet, because the AP processor
+        // pgdir to use. We cannot use kernel_page_dir yet, because the AP processor
         // is running in low  memory, so we use entry_page_directory for the APs too.
         stack                 = kalloc();                                //  分配4K的栈  stack是栈最低地址处
         *( void** )(code - 4) = stack + KSTACK_SIZE;                     // ap使用在内存中分配的栈 ，最高地址处即当前的栈顶

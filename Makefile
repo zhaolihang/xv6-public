@@ -79,6 +79,7 @@ KERNEL_OBJS = \
 	uart.o\
 	vectors.o\
 	vm.o\
+	kextern_data.o\
 	boot/main.o\
 	boot/entry.o\
 

@@ -6,6 +6,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+#include "kextern_data.h"
 
 // Set up CPU's kernel segment descriptors.
 // Run once on entry on each CPU.
@@ -71,7 +72,7 @@ static int mappages(pgtabe_t* pgdir, void* va, uint size, uint pa, int permissio
 }
 
 // There is one page table per process, plus one that's used when
-// a CPU is not running any process (kpgdir). The kernel uses the
+// a CPU is not running any process (kern_page_dir). The kernel uses the
 // current process's page table during system calls and interrupts;
 // page protection bits prevent user code from using the kernel's
 // mappings.
@@ -93,7 +94,6 @@ static int mappages(pgtabe_t* pgdir, void* va, uint size, uint pa, int permissio
 
 // This table defines the kernel's mappings, which are present in
 // every process's page table.
-extern char data[];
 
 static struct kmap {
     void* virt;
@@ -127,16 +127,16 @@ pgtabe_t* alloc_kvm_pgdir(void) {
 
 // Allocate one page table for the machine for the kernel address
 // space for scheduler processes.
-pgtabe_t* kpgdir;    // for use in scheduler()
+static pgtabe_t* kern_page_dir;    // for use in scheduler()
 
 void init_kvm_pgdir(void) {
-    kpgdir = alloc_kvm_pgdir();    // 分配生成完整的页目录表 和页表  并保存为全局变量 kpgdir
+    kern_page_dir = alloc_kvm_pgdir();    // 分配生成完整的页目录表 和页表  并保存为全局变量 kern_page_dir
 }
 
 // Switch h/w page table register to the kernel-only page table,
 // for when no process is running.
 void switch2kvm(void) {
-    lcr3(C_V2P(kpgdir));    // switch to the kernel page table
+    lcr3(C_V2P(kern_page_dir));    // switch to the kernel page table
 }
 
 // Switch TSS and h/w page table to correspond to process p.

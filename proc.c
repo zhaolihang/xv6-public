@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "kextern_data.h"
 
 struct {
     struct spinlock lock;
@@ -100,8 +101,8 @@ found:
         // Set up new context to start executing at forkret,
         // which returns to trapret.
         sp -= 4;    // 预留 返回点
-        *( uint* )sp = ( uint )
-            trapret;    // 中断返回点地址  forkret 会返回到trapret 去执行 然后 trapret执行一个iret 模拟中断返回从特权机0切换到3 进行任务
+        *( uint* )sp =
+            ( uint )trapret;    // 中断返回点地址  forkret 会返回到trapret 去执行 然后 trapret执行一个iret 模拟中断返回从特权机0切换到3 进行任务
     }
 
     {
@@ -118,8 +119,6 @@ found:
 // Set up first user process.
 void userinit(void) {
     struct proc* p;
-    //  _binary_initcode_start  _binary_initcode_size 是ld中把initcode.S文件编译成的二进制放在内核文件标号_binary_initcode_start处
-    extern char _binary_initcode_start[], _binary_initcode_size[];
 
     p = allocproc();
 
@@ -134,9 +133,9 @@ void userinit(void) {
     p->tf->ds     = (SEG_UDATA_INDEX << 3) | DPL_USER;
     p->tf->es     = p->tf->ds;
     p->tf->ss     = p->tf->ds;
-    p->tf->eflags = FL_IF;    // 开启中断
-    p->tf->esp = PAGE_SIZE;    // 把initcode.bin 未使用的4k边界做为用户栈 没有单独分配用户栈
-    p->tf->eip = 0;            // beginning of initcode.S   指令指针在0处执行 trapret 返回的地方
+    p->tf->eflags = FL_IF;        // 开启中断
+    p->tf->esp    = PAGE_SIZE;    // 把initcode.bin 未使用的4k边界做为用户栈 没有单独分配用户栈
+    p->tf->eip    = 0;            // beginning of initcode.S   指令指针在0处执行 trapret 返回的地方
 
     safestrcpy(p->name, "initcode", sizeof(p->name));    // 设置进程名字
     p->cwd = namei("/");                                 //设置进程工作目录  需要inode的知识
@@ -329,9 +328,8 @@ void scheduler(void)    // no return
             // Switch to chosen process.  It is the process's job
             // to release ptable.lock and then reacquire it
             // before jumping back to us.
-            c->proc = p;    // cpu 当前的进程是p
-            switch2uvm(
-                p);    // 切换成用户的虚拟内存 并加载p 的tss 到tr 中 因为 中断的时候切换到内核需要使用0特权级的栈 由硬件完成 所以不可能绕过tss
+            c->proc = p;      // cpu 当前的进程是p
+            switch2uvm(p);    // 切换成用户的虚拟内存 并加载p 的tss 到tr 中 因为 中断的时候切换到内核需要使用0特权级的栈 由硬件完成 所以不可能绕过tss
             p->state = RUNNING;    // 选择一个可运行的RUNNABLE(就绪态) 的进程 ,运行 切换到 运行态(RUNNING)
 
             // = call swtch : push p->context ; push &(c->scheduler) ; push eip ; movl swtch eip
@@ -479,8 +477,7 @@ int kill(int pid) {
 // Runs when user types ^P on console.
 // No lock to avoid wedging a stuck machine further.
 void procdump(void) {
-    static char* states[] = { [UNUSED] "unused",   [EMBRYO] "embryo",  [SLEEPING] "sleep ",
-                              [RUNNABLE] "runble", [RUNNING] "run   ", [ZOMBIE] "zombie" };
+    static char* states[] = { [UNUSED] "unused", [EMBRYO] "embryo", [SLEEPING] "sleep ", [RUNNABLE] "runble", [RUNNING] "run   ", [ZOMBIE] "zombie" };
     int          i;
     struct proc* p;
     char*        state;

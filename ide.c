@@ -12,6 +12,7 @@
 #include "sleeplock.h"
 #include "fs.h"
 #include "buf.h"
+#include "kextern_data.h"
 
 #define SECTOR_SIZE 512
 #define IDE_BSY 0x80

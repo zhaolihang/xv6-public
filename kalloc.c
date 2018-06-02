@@ -8,6 +8,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "spinlock.h"
+#include "kextern_data.h"
 
 void freerange(void* vstart, void* vend);
 
@@ -49,7 +50,6 @@ void freerange(void* vstart, void* vend) {
 // call to kalloc().  (The exception is when
 // initializing the allocator; see kinit above.)
 void kfree(char* v) {
-    extern char end[];    // first address after kernel loaded from ELF file
     struct run* r;
 
     if (( uint )v % PAGE_SIZE || v < end || C_V2P(v) >= PHY_TOP_LIMIT)

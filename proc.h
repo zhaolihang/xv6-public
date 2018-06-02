@@ -1,18 +1,24 @@
+#ifndef __XV6_PROC_H__
+#define __XV6_PROC_H__
+
+#include "mmu.h"
+#include "types.h"
+#include "param.h"
+#include "x86.h"
+#include "file.h"
+
+struct proc;
 // Per-CPU state
 struct cpu {
-    uchar           apicid;    // Local APIC ID
-    struct context* scheduler;    // swtch() here to enter scheduler   // scheduler函数中的context 寄存器状态
-    struct taskstate
-                   tss;    // Used by x86 to find stack for interrupt  tss 在用户程序中发生中断的时候需要找到0特权级的栈
-    struct segdesc gdt[SEG_SIZE];    // x86 global descriptor table
-    volatile uint  started;          // Has the CPU started?
-    int            ncli;             // Depth of pushcli nesting.
-    int            intena;           // Were interrupts enabled before pushcli?
-    struct proc*   proc;             // The process running on this cpu or null // cpu 正在运行的进程
+    uchar            apicid;       // Local APIC ID
+    struct context*  scheduler;    // swtch() here to enter scheduler   // scheduler函数中的context 寄存器状态
+    struct taskstate tss;          // Used by x86 to find stack for interrupt  tss 在用户程序中发生中断的时候需要找到0特权级的栈
+    struct segdesc   gdt[SEG_SIZE];    // x86 global descriptor table
+    volatile uint    started;          // Has the CPU started?
+    int              ncli;             // Depth of pushcli nesting.
+    int              intena;           // Were interrupts enabled before pushcli?
+    struct proc*     proc;             // The process running on this cpu or null // cpu 正在运行的进程
 };
-
-extern struct cpu cpus[MAX_CPU];
-extern int        ncpu;
 
 //PAGEBREAK: 17
 // Saved registers for kernel context switches.
@@ -38,7 +44,7 @@ enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 // Per-process state
 struct proc {
     uint              sz;               // Size of process memory (bytes)
-    pgtabe_t*            pgdir;            // Page directory table
+    pgtabe_t*         pgdir;            // Page directory table
     char*             kstack;           // Bottom of kernel stack for this process
     enum procstate    state;            // Process state
     int               pid;              // Process ID
@@ -57,3 +63,5 @@ struct proc {
 //   original data and bss
 //   fixed-size stack
 //   expandable heap
+
+#endif

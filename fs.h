@@ -1,3 +1,5 @@
+#ifndef __XV6_FS_H__
+#define __XV6_FS_H__
 // On-disk file system format.
 // Both the kernel and user programs use this header file.
 
@@ -54,3 +56,5 @@ struct dirent {
     ushort inum;
     char   name[DIRSIZ];
 };
+
+#endif

@@ -1,3 +1,7 @@
+#ifndef __XV6_SLEEPLOCK_H__
+#define __XV6_SLEEPLOCK_H__
+
+#include "spinlock.h"
 // Long-term locks for processes
 struct sleeplock {
     uint            locked;    // Is the lock held?
@@ -6,3 +10,5 @@ struct sleeplock {
     char* name;    // Name of lock.
     int   pid;     // Process holding lock
 };
+
+#endif

@@ -7,10 +7,10 @@
 #include "x86.h"
 #include "traps.h"
 #include "spinlock.h"
+#include "kextern_data.h"
 
 // Interrupt descriptor table (shared by all CPUs).
 struct gatedesc idt[256];
-extern uint     vectors[];    // in vectors.S: array of 256 entry pointers  vectors.S由脚本vectors.pl生成
 struct spinlock tickslock;
 uint            ticks;
 

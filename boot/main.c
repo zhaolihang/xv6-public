@@ -5,19 +5,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "x86.h"
-
-// The boot page table used in entry.S and entryother.S.
-// Page directories (and page tables) must start on page boundaries,
-// hence the __aligned__ attribute.
-// PTE_PS in a page directory entry enables 4Mbyte pages.
-pgtabe_t entry_page_directory[];    // For entry.S
-
-__attribute__((__aligned__(PAGE_SIZE))) pgtabe_t entry_page_directory[PAGE_DIR_TABLE_ENTRY_SIZE] = {
-    // Map VA's [0, 4MB) to PA's [0, 4MB)
-    [0] = (0) | PTE_P | PTE_W | PTE_PS,
-    // Map VA's [VA_KERNAL_SPACE_BASE, VA_KERNAL_SPACE_BASE+4MB) to PA's [0, 4MB)
-    [VA_KERNAL_SPACE_BASE >> PDXSHIFT] = (0) | PTE_P | PTE_W | PTE_PS,
-};
+#include "kextern_data.h"
 
 static void start_others(void);
 static void mp_main(void) __attribute__((noreturn));
@@ -26,7 +14,6 @@ static void mp_main(void) __attribute__((noreturn));
 // Allocate a real stack and switch to it, first
 // doing some setup required for memory allocator to work.
 int main(void) {
-    extern char end[];    // defined by  kernel.ld
     // phys page allocator 将 end~0x80000000+4*1024*1024 的内存每4k加入到内核内存空闲列表中 现在只有不到4m的内存
     kinit1(end, C_P2V(4 * 1024 * 1024));
     init_kvm_pgdir();    // kernel page table  分配并切换到内核页表
@@ -77,10 +64,9 @@ static void start_others(void) {
     // https://www.linuxjournal.com/content/embedding-file-executable-aka-hello-world-version-5967
     // https://balau82.wordpress.com/2012/02/19/linking-a-binary-blob-with-gcc/
     // http://gareus.org/wiki/embedding_resources_in_executables
-    extern uchar _binary_entryother_start[], _binary_entryother_size[];
-    uchar*       code;
-    struct cpu*  c;
-    char*        stack;
+    uchar*      code;
+    struct cpu* c;
+    char*       stack;
 
     // Write entry code to unused memory at 0x7000.
     // The linker has placed the image of entryother.S in
@@ -93,7 +79,7 @@ static void start_others(void) {
             continue;
 
         // Tell entryother.S what stack to use, where to enter, and what
-        // pgdir to use. We cannot use kpgdir yet, because the AP processor
+        // pgdir to use. We cannot use kern_page_dir yet, because the AP processor
         // is running in low  memory, so we use entry_page_directory for the APs too.
         stack                 = kalloc();                                //  分配4K的栈  stack是栈最低地址处
         *( void** )(code - 4) = stack + KSTACK_SIZE;                     // ap使用在内存中分配的栈 ，最高地址处即当前的栈顶

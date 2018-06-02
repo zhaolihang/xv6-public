@@ -54,7 +54,7 @@ entry:
   movl    %eax, %cr0
 
   # Set up the stack pointer.
-  movl $(stack + KSTACK_SIZE), %esp
+  movl $(bsptmp_stack + KSTACK_SIZE), %esp
 
   # Jump to main(), and switch to executing at
   # high addresses. The indirect call is needed because
@@ -63,4 +63,4 @@ entry:
   mov $main, %eax #  跳转到高地址中执行 main.c
   jmp *%eax
 
-.comm stack, KSTACK_SIZE  #  bsp 使用的内核栈 在内核文件中预留的4k栈
+.comm bsptmp_stack, KSTACK_SIZE  #  bsp 使用的内核栈 在内核文件中预留的4k栈

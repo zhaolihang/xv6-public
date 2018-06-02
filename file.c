@@ -10,7 +10,7 @@
 #include "sleeplock.h"
 #include "file.h"
 
-struct devsw devsw[NDEV];
+struct device_rw device_rw[NDEV];
 struct {
     struct spinlock lock;
     struct file     file[NFILE];

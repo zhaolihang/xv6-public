@@ -275,8 +275,8 @@ int consolewrite(struct inode* ip, char* buf, int n) {
 void consoleinit(void) {
     initlock(&cons.lock, "console");
 
-    devsw[CONSOLE].write = consolewrite;
-    devsw[CONSOLE].read  = consoleread;
+    device_rw[CONSOLE].write = consolewrite;
+    device_rw[CONSOLE].read  = consoleread;
     cons.locking         = 1;
 
     ioapicenable(IRQ_KBD, 0);

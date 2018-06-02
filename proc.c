@@ -15,8 +15,8 @@ struct {
 
 static struct proc* initproc;
 
-int         nextpid = 1;
-extern void forkret(void);
+static int  nextpid = 1;
+static void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void* chan);
@@ -60,7 +60,6 @@ struct proc* myproc(void) {
     return p;
 }
 
-//PAGEBREAK: 32
 // Look in the process table for an UNUSED proc.
 // If found, change state to EMBRYO and initialize
 // state required to run in the kernel.
@@ -115,7 +114,6 @@ found:
     return p;
 }
 
-//PAGEBREAK: 32
 // Set up first user process.
 void userinit(void) {
     struct proc* p;
@@ -379,16 +377,16 @@ void yield(void) {
 
 // A fork child's very first scheduling by scheduler()
 // will swtch here.  "Return" to user space.
-void forkret(void) {
-    static int first = 1;
+static void forkret(void) {
+    static int isfirst = 1;
     // Still holding ptable.lock from scheduler.
     release(&ptable.lock);    // 释放scheduler中持有的锁
 
-    if (first) {
+    if (isfirst) {
         // Some initialization functions must be run in the context
         // of a regular process (e.g., they call sleep), and thus cannot
         // be run from main().
-        first = 0;
+        isfirst = 0;
         iinit(ROOTDEV);
         initlog(ROOTDEV);
     }

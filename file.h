@@ -32,7 +32,7 @@ struct inode {
 
 // table mapping major device number to
 // device functions
-struct devsw {
+struct device_rw {
     int (*read)(struct inode*, char*, int);
     int (*write)(struct inode*, char*, int);
 };

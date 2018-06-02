@@ -37,8 +37,6 @@ struct devsw {
     int (*write)(struct inode*, char*, int);
 };
 
-extern struct devsw devsw[];
-
 #define CONSOLE 1
 
 #endif

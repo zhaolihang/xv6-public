@@ -82,15 +82,15 @@ static int mappages(pgtabe_t* pgdir, void* va, uint size, uint pa, int permissio
 //   0..VA_KERNAL_SPACE_BASE: user memory (text+data+stack+heap), mapped to
 //                phys memory allocated by the kernel
 //   VA_KERNAL_SPACE_BASE..VA_KERNAL_SPACE_BASE+PHY_EXTMEM_BASE: mapped to 0..PHY_EXTMEM_BASE (for I/O space)
-//   VA_KERNAL_SPACE_BASE+PHY_EXTMEM_BASE..data: mapped to PHY_EXTMEM_BASE..C_V2P(data)
-//                for the kernel's instructions and r/o data
-//   data..VA_KERNAL_SPACE_BASE+PHY_TOP_LIMIT: mapped to C_V2P(data)..PHY_TOP_LIMIT,
-//                                  rw data + free physical memory
+//   VA_KERNAL_SPACE_BASE+PHY_EXTMEM_BASE..data_start: mapped to PHY_EXTMEM_BASE..C_V2P(data_start)
+//                for the kernel's instructions and r/o data_start
+//   data_start..VA_KERNAL_SPACE_BASE+PHY_TOP_LIMIT: mapped to C_V2P(data_start)..PHY_TOP_LIMIT,
+//                                  rw data_start + free physical memory
 //   0xfe000000..0: mapped direct (devices such as ioapic)
 //
 // The kernel allocates physical memory for its heap and for user memory
-// between C_V2P(end) and the end of physical memory (PHY_TOP_LIMIT)
-// (directly addressable from end..C_P2V(PHY_TOP_LIMIT)).
+// between C_V2P(kernel_end) and the kernel_end of physical memory (PHY_TOP_LIMIT)
+// (directly addressable from kernel_end..C_P2V(PHY_TOP_LIMIT)).
 
 // This table defines the kernel's mappings, which are present in
 // every process's page table.
@@ -102,8 +102,8 @@ static struct kmap {
     int   permission;
 } kmap[] = {
     { ( void* )VA_KERNAL_SPACE_BASE, 0, PHY_EXTMEM_BASE, PTE_W },                        // I/O space
-    { ( void* )VA_KERNAL_LINKED_BASE, C_V2P(VA_KERNAL_LINKED_BASE), C_V2P(data), 0 },    // kern text+rodata
-    { ( void* )data, C_V2P(data), PHY_TOP_LIMIT, PTE_W },                                // kern data+memory
+    { ( void* )VA_KERNAL_LINKED_BASE, C_V2P(VA_KERNAL_LINKED_BASE), C_V2P(data_start), 0 },    // kern text+rodata
+    { ( void* )data_start, C_V2P(data_start), PHY_TOP_LIMIT, PTE_W },                                // kern data_start+memory
     { ( void* )PHY_DEVICE_BASE, PHY_DEVICE_BASE, 0, PTE_W },                             // more devices
 };
 

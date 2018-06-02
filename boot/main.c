@@ -14,8 +14,8 @@ static void mp_main(void) __attribute__((noreturn));
 // Allocate a real stack and switch to it, first
 // doing some setup required for memory allocator to work.
 int main(void) {
-    // phys page allocator 将 end~0x80000000+4*1024*1024 的内存每4k加入到内核内存空闲列表中 现在只有不到4m的内存
-    kinit1(end, C_P2V(4 * 1024 * 1024));
+    // phys page allocator 将 kernel_end~0x80000000+4*1024*1024 的内存每4k加入到内核内存空闲列表中 现在只有不到4m的内存
+    kinit1(kernel_end, C_P2V(4 * 1024 * 1024));
     init_kvm_pgdir();    // kernel page table  分配并切换到内核页表
     switch2kvm();        // 立即使用该页表 lcr3
     mpinit();            // detect other processors  smp架构获取其他cpu的信息

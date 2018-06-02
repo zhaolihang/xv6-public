@@ -13,8 +13,8 @@
 extern pgtabe_t entry_page_directory[];    // For entry.S
 
 extern uchar _binary_entryother_start[], _binary_entryother_size[];
-extern char  end[];    // defined by  kernel.ld
-extern char  data[];
+extern char  kernel_end[];    // defined by  kernel.ld
+extern char  data_start[];
 extern uint  vectors[];    // in vectors.S: array of 256 entry pointers  vectors.S由脚本vectors.pl生成
 //  _binary_initcode_start  _binary_initcode_size 是ld中把initcode.S文件编译成的二进制放在内核文件标号_binary_initcode_start处
 extern char _binary_initcode_start[], _binary_initcode_size[];

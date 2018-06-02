@@ -10,13 +10,13 @@
 #include "spinlock.h"
 #include "kextern_data.h"
 
-void freerange(void* vstart, void* vend);
+static void freerange(void* vstart, void* vend);
 
 struct run {
     struct run* next;
 };
 
-struct {
+static struct {
     struct spinlock lock;
     int             use_lock;
     struct run*     freelist;
@@ -38,7 +38,7 @@ void kinit2(void* vstart, void* vend) {
     kmem.use_lock = 1;
 }
 
-void freerange(void* vstart, void* vend) {
+static void freerange(void* vstart, void* vend) {
     char* p;
     p = ( char* )PAGE_ROUNDUP(( uint )vstart);    //p2align
     for (; p + PAGE_SIZE <= ( char* )vend; p += PAGE_SIZE)
@@ -52,7 +52,7 @@ void freerange(void* vstart, void* vend) {
 void kfree(char* v) {
     struct run* r;
 
-    if (( uint )v % PAGE_SIZE || v < end || C_V2P(v) >= PHY_TOP_LIMIT)
+    if (( uint )v % PAGE_SIZE || v < kernel_end || C_V2P(v) >= PHY_TOP_LIMIT)
         panic("kfree");
 
     // Fill with junk to catch dangling refs.

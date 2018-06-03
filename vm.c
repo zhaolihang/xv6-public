@@ -28,13 +28,14 @@ void seginit(void) {
 // Return the address of the PTE in page table pgdir
 // that corresponds to virtual address va.  If alloc!=0,
 // create any required page table pages.
-static pgtabe_t* walkpgdir(pgtabe_t* pgdir, const void* va, bool alloc) {
+// 返回页表项的虚拟地址指针  方便对这一项做映射
+static pgtabe_t* get_page_table_entry(pgtabe_t* pgdir, const void* va, bool alloc) {
     pgtabe_t* pde;
     pgtabe_t* pgtab;
 
     pde = &pgdir[PAGE_DIR_INDEX(va)];
-    if (*pde & PTE_P) {
-        pgtab = ( pgtabe_t* )C_P2V(PTE_ADDR(*pde));
+    if (*pde & PTE_P) {                                // 存在
+        pgtab = ( pgtabe_t* )C_P2V(PTE_ADDR(*pde));    // 页目录项(即页表)的虚拟地址
     } else {
         if (!alloc || (pgtab = ( pgtabe_t* )kalloc_page()) == 0)
             return 0;
@@ -48,26 +49,27 @@ static pgtabe_t* walkpgdir(pgtabe_t* pgdir, const void* va, bool alloc) {
     return &pgtab[PAGE_TABLE_INDEX(va)];
 }
 
-// Create PTEs for virtual addresses starting at va that refer to
-// physical addresses starting at pa. va and size might not
+// Create PTEs for virtual addresses starting at vaddr that refer to
+// physical addresses starting at paddr. vaddr and size might not
 // be page-aligned.
-static int mappages(pgtabe_t* pgdir, void* va, uint size, uint pa, int permission) {
-    char *    start, *last;
+static int mappages(pgtabe_t* pgdir, void* vaddr, uint size, uint paddr, int permission) {
+    char*     curr;
+    char*     last;
     pgtabe_t* pte;
 
-    start = ( char* )PAGE_ROUNDDOWN(( uint )va);
-    last  = ( char* )PAGE_ROUNDDOWN((( uint )va) + size - 1);
+    curr = ( char* )PAGE_ROUNDDOWN(( uint )vaddr);
+    last = ( char* )PAGE_ROUNDDOWN((( uint )vaddr) + size - 1);
 
     for (;;) {
-        if ((pte = walkpgdir(pgdir, start, true)) == 0)
+        if ((pte = get_page_table_entry(pgdir, curr, true)) == 0)
             return -1;
         if (*pte & PTE_P)
             panic("remap");
-        *pte = pa | permission | PTE_P;
-        if (start == last)
+        *pte = paddr | permission | PTE_P;    // 映射到物理地址
+        if (curr == last)
             break;
-        start += PAGE_SIZE;
-        pa += PAGE_SIZE;
+        curr += PAGE_SIZE;
+        paddr += PAGE_SIZE;
     }
 
     return 0;
@@ -98,9 +100,9 @@ static int mappages(pgtabe_t* pgdir, void* va, uint size, uint pa, int permissio
 // every process's page table.
 
 struct mem_mapping {
-    void* vir_start;
-    uint  phys_start;
-    uint  phys_end;
+    void* vaddr_start;
+    uint  paddr_start;
+    uint  paddr_end;
     int   permission;
 };
 
@@ -125,7 +127,7 @@ pgtabe_t* alloc_kvm_pgdir(void) {
         panic("PHY_TOP_LIMIT too high");
 
     for (mapping = kernel_mapping; mapping < &kernel_mapping[SIZEOF_ARRAY(kernel_mapping)]; mapping++)
-        if (mappages(pgdir, mapping->vir_start, mapping->phys_end - mapping->phys_start, ( uint )mapping->phys_start, mapping->permission) < 0) {
+        if (mappages(pgdir, mapping->vaddr_start, mapping->paddr_end - mapping->paddr_start, ( uint )mapping->paddr_start, mapping->permission) < 0) {
             freevm(pgdir);
             return 0;
         }
@@ -193,7 +195,7 @@ int loaduvm(pgtabe_t* pgdir, char* addr, struct inode* ip, uint offset, uint sz)
     if (( uint )addr % PAGE_SIZE != 0)
         panic("loaduvm: addr must be page aligned");
     for (i = 0; i < sz; i += PAGE_SIZE) {
-        if ((pte = walkpgdir(pgdir, addr + i, false)) == 0)
+        if ((pte = get_page_table_entry(pgdir, addr + i, false)) == 0)
             panic("loaduvm: address should exist");
         pa = PTE_ADDR(*pte);
         if (sz - i < PAGE_SIZE)
@@ -249,7 +251,7 @@ int deallocuvm(pgtabe_t* pgdir, uint oldsz, uint newsz) {
 
     a = PAGE_ROUNDUP(newsz);
     for (; a < oldsz; a += PAGE_SIZE) {
-        pte = walkpgdir(pgdir, ( char* )a, false);
+        pte = get_page_table_entry(pgdir, ( char* )a, false);
         if (!pte)
             a = PGADDR(PAGE_DIR_INDEX(a) + 1, 0, 0) - PAGE_SIZE;
         else if ((*pte & PTE_P) != 0) {
@@ -286,7 +288,7 @@ void freevm(pgtabe_t* pgdir) {
 void clearpteu(pgtabe_t* pgdir, char* uva) {
     pgtabe_t* pte;
 
-    pte = walkpgdir(pgdir, uva, false);
+    pte = get_page_table_entry(pgdir, uva, false);
     if (pte == 0)
         panic("clearpteu");
     *pte &= ~PTE_U;
@@ -303,7 +305,7 @@ pgtabe_t* copyuvm(pgtabe_t* pgdir, uint sz) {
     if ((d = alloc_kvm_pgdir()) == 0)
         return 0;
     for (i = 0; i < sz; i += PAGE_SIZE) {
-        if ((pte = walkpgdir(pgdir, ( void* )i, false)) == 0)
+        if ((pte = get_page_table_entry(pgdir, ( void* )i, false)) == 0)
             panic("copyuvm: pte should exist");
         if (!(*pte & PTE_P))
             panic("copyuvm: page not present");
@@ -327,7 +329,7 @@ bad:
 char* uva2ka(pgtabe_t* pgdir, char* uva) {
     pgtabe_t* pte;
 
-    pte = walkpgdir(pgdir, uva, false);
+    pte = get_page_table_entry(pgdir, uva, false);
     if ((*pte & PTE_P) == 0)
         return 0;
     if ((*pte & PTE_U) == 0)

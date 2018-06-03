@@ -18,19 +18,21 @@ int main(void) {
     init_kernel_mem_1(kernel_end, C_P2V(4 * 1024 * 1024));
     init_kvm_pgdir();    // 分配 kernel page directory table
     switch2kvm();        // 换到内核页表 lcr3
-    mpinit();            // detect other processors  smp架构获取其他cpu的信息
-    lapicinit();         // interrupt controller  配置本地中断控制器
-    seginit();           // segment descriptors  设置当前cpu的gdt
-    picinit();           // disable pic  禁用8259中断
-    ioapicinit();        // another interrupt controller  配置io中断控制器
-    consoleinit();       // console hardware  绑定 读写函数指针 开启键盘中断
-    uartinit();          // serial port  打开串口 可能是显示器的数据口
-    pinit();             // process table 初始化进程表的锁
-    tvinit();            // trap vectors  初始化设置中断向量表,cpu并没有加载到idtr中
-    binit();             // buffer cache  初始化io的环形缓冲区
-    fileinit();          // file table  初始化文件表的锁
-    ideinit();           // disk   初始化硬盘,并且打开ide中断
-    start_others();      // start other processors   启动其他cpu 并进入scheduler 函数
+
+    mpinit();          // detect other processors  smp架构获取其他cpu的信息
+    lapicinit();       // interrupt controller  配置本地中断控制器
+    seginit();         // segment descriptors  设置当前cpu的gdt
+    picinit();         // disable pic  禁用8259中断
+    ioapicinit();      // another interrupt controller  配置io中断控制器
+    consoleinit();     // console hardware  绑定 读写函数指针 开启键盘中断
+    uartinit();        // serial port  打开串口 可能是显示器的数据口
+    pinit();           // process table 初始化进程表的锁
+    tvinit();          // trap vectors  初始化设置中断向量表,cpu并没有加载到idtr中
+    binit();           // buffer cache  初始化io的环形缓冲区
+    fileinit();        // file table  初始化文件表的锁
+    ideinit();         // disk   初始化硬盘,并且打开ide中断
+    start_others();    // start other processors   启动其他cpu 并进入scheduler 函数
+
     // must come after start_others()  初始化其他的空闲内存
     init_kernel_mem_2(C_P2V(4 * 1024 * 1024), C_P2V(PHY_TOP_LIMIT));
     userinit();    // first user process 在进程表中加入第一个用户进程  很重要!!!!!!!!!!!!!!!
@@ -40,8 +42,8 @@ int main(void) {
 // Other CPUs jump here from entryother.S.
 static void mpenter(void)    // entryother.S 调用这里 但是使用了临时的 page_dirctory_table
 {
-    // init_kvm_pgdir(); 不需要再分配了因为整个内核使用一份数据 在上面已经初始化过了
-    switch2kvm();    // 切换到 内核的页目录表 lcr3
+    // init_kvm_pgdir(); 整个内核使用一份内存映射数据 在上面已经初始化过了
+    switch2kvm();    // 换到内核页表 lcr3
     seginit();       // 初始化当前cpu的gdt
     lapicinit();     // 初始化当前cpu的lapic
     mp_main();

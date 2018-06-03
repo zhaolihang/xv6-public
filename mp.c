@@ -83,8 +83,9 @@ static struct mpconf* mpconfig(struct mp** pmp) {
 
 void mpinit(void)    // 获取 ioapicid 并且获取每个cpu的apic id 存放带相应的结构体中
 {
-    uchar *          p, *e;
-    int              ismp;
+    uchar*           p;
+    uchar*           e;
+    bool             ismp;
     struct mp*       mp;
     struct mpconf*   conf;
     struct mpproc*   proc;
@@ -92,7 +93,7 @@ void mpinit(void)    // 获取 ioapicid 并且获取每个cpu的apic id 存放�
 
     if ((conf = mpconfig(&mp)) == 0)
         panic("Expect to run on an SMP");
-    ismp  = 1;
+    ismp  = true;
     lapic = ( uint* )conf->lapicaddr;
     for (p = ( uchar* )(conf + 1), e = ( uchar* )conf + conf->length; p < e;) {
         switch (*p) {
@@ -115,7 +116,7 @@ void mpinit(void)    // 获取 ioapicid 并且获取每个cpu的apic id 存放�
                 p += 8;
                 continue;
             default:
-                ismp = 0;
+                ismp = false;
                 break;
         }
     }

@@ -17,11 +17,13 @@ void seginit(void) {
     // Cannot share a CODE descriptor for both kernel and user
     // because it would have to have DPL_USR, but the CPU forbids
     // an interrupt from CPL=0 to DPL=3.
-    c                       = &cpus[cpuid()];
+    c = &cpus[cpuid()];
+
     c->gdt[SEG_KCODE_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_X | APP_SEG_TYPE_R, 0, 0xffffffff, 0);
     c->gdt[SEG_KDATA_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_W, 0, 0xffffffff, 0);
     c->gdt[SEG_UCODE_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_X | APP_SEG_TYPE_R, 0, 0xffffffff, DPL_USER);
     c->gdt[SEG_UDATA_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_W, 0, 0xffffffff, DPL_USER);
+
     lgdt(c->gdt, sizeof(c->gdt));
 }
 

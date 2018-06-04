@@ -81,7 +81,7 @@ static struct mpconf* mpconfig(struct mp** pmp) {
     return conf;
 }
 
-void mpinit(void)    // 获取 ioapicid 并且获取每个cpu的apic id 存放带相应的结构体中
+void mpinit(void)    // 获取 ioapicid 并且获取每个cpu的apic id 存放在相应的结构体中
 {
     uchar*           p;
     uchar*           e;

@@ -14,7 +14,7 @@
 
 #define COM1 0x3f8
 
-static int uart;    // is there a uart?
+static bool isuart;    // is there a uart?
 
 void uartinit(void) {
     char* p;
@@ -33,7 +33,7 @@ void uartinit(void) {
     // If status is 0xFF, no serial port.
     if (inb(COM1 + 5) == 0xFF)
         return;
-    uart = 1;
+    isuart = true;
 
     // Acknowledge pre-existing interrupt conditions;
     // enable interrupts.
@@ -49,7 +49,7 @@ void uartinit(void) {
 void uartputc(int c) {
     int i;
 
-    if (!uart)
+    if (!isuart)
         return;
     for (i = 0; i < 128 && !(inb(COM1 + 5) & 0x20); i++)
         microdelay(10);
@@ -57,7 +57,7 @@ void uartputc(int c) {
 }
 
 static int uartgetc(void) {
-    if (!uart)
+    if (!isuart)
         return -1;
     if (!(inb(COM1 + 5) & 0x01))
         return -1;

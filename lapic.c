@@ -42,9 +42,9 @@
 #define TDCR    (0x03E0/4)   // Timer Divide Configuration
 
 
-static volatile uint* lapicaddr;
+volatile uint* lapicaddr;
 
-void set_lapicaddr(uint* p) {    // Initialized in mp.c
+void init_lapicaddr(uint* p) {    // Initialized in mp.c
     lapicaddr = p;
 }
 

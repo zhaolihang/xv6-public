@@ -73,13 +73,14 @@ void  init_kernel_mem_2(void*, void*);
 void kbdintr(void);
 
 // lapic.c
-void cmostime(struct rtcdate* r);
-int  lapicid(void);
-void lapiceoi(void);
-void lapicinit(void);
-void lapicstartap(uchar, uint);
-void microdelay(int);
-void set_lapicaddr(uint*);
+void                  cmostime(struct rtcdate* r);
+int                   lapicid(void);
+void                  lapiceoi(void);
+void                  lapicinit(void);
+void                  lapicstartap(uchar, uint);
+void                  microdelay(int);
+extern volatile uint* lapicaddr;
+void                  init_lapicaddr(uint*);
 
 
 // log.c
@@ -101,7 +102,6 @@ void pipeclose(struct pipe*, int);
 int  piperead(struct pipe*, char*, int);
 int  pipewrite(struct pipe*, char*, int);
 
-//PAGEBREAK: 16
 // proc.c
 int          cpuid(void);
 void         exit(void);

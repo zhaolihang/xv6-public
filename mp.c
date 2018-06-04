@@ -97,7 +97,7 @@ void mpinit(void)    // 获取 ioapicid 并且获取每个cpu的apic id 存放�
     if ((conf = mpconfig(&mp)) == 0)
         panic("Expect to run on an SMP");
 
-    set_lapicaddr(( uint* )conf->lapicaddr);
+    init_lapicaddr(( uint* )conf->lapicaddr);
     ismp = true;
 
     for (p = ( uchar* )(conf + 1), e = ( uchar* )conf + conf->length; p < e;) {

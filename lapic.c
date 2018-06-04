@@ -41,23 +41,27 @@
 #define TCCR    (0x0390/4)   // Timer Current Count
 #define TDCR    (0x03E0/4)   // Timer Divide Configuration
 
-volatile uint* lapic;    // Initialized in mp.c
 
-//PAGEBREAK!
+static volatile uint* lapicaddr;
+
+void set_lapicaddr(uint* p) {    // Initialized in mp.c
+    lapicaddr = p;
+}
+
 static void lapicw(int index, int value) {
-    lapic[index] = value;
-    lapic[ID];    // wait for write to finish, by reading
+    lapicaddr[index] = value;
+    lapicaddr[ID];    // wait for write to finish, by reading
 }
 
 void lapicinit(void) {
-    if (!lapic)
+    if (!lapicaddr)
         return;
 
     // Enable local APIC; set spurious interrupt vector.
     lapicw(SVR, ENABLE | (T_IRQ0 + IRQ_SPURIOUS));
 
     // The timer repeatedly counts down at bus frequency
-    // from lapic[TICR] and then issues an interrupt.
+    // from lapicaddr[TICR] and then issues an interrupt.
     // If xv6 cared more about precise timekeeping,
     // TICR would be calibrated using an external time source.
     lapicw(TDCR, X1);
@@ -70,7 +74,7 @@ void lapicinit(void) {
 
     // Disable performance counter overflow interrupts
     // on machines that provide that interrupt entry.
-    if (((lapic[VER] >> 16) & 0xFF) >= 4)
+    if (((lapicaddr[VER] >> 16) & 0xFF) >= 4)
         lapicw(PCINT, MASKED);
 
     // Map error interrupt to IRQ_ERROR.
@@ -86,7 +90,7 @@ void lapicinit(void) {
     // Send an Init Level De-Assert to synchronise arbitration ID's.
     lapicw(ICRHI, 0);
     lapicw(ICRLO, BCAST | INIT | LEVEL);
-    while (lapic[ICRLO] & DELIVS)
+    while (lapicaddr[ICRLO] & DELIVS)
         ;
 
     // Enable interrupts on the APIC (but not on the processor).
@@ -94,14 +98,14 @@ void lapicinit(void) {
 }
 
 int lapicid(void) {
-    if (!lapic)
+    if (!lapicaddr)
         return 0;
-    return lapic[ID] >> 24;    // 内存映射的寄存器 所以每个cpu获取的都是自己的lapic id
+    return lapicaddr[ID] >> 24;    // 内存映射的寄存器 所以每个cpu获取的都是自己的lapic id
 }
 
 // Acknowledge interrupt.
 void lapiceoi(void) {
-    if (lapic)
+    if (lapicaddr)
         lapicw(EOI, 0);
 }
 

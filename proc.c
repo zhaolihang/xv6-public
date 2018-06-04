@@ -41,7 +41,7 @@ struct cpu* mycpu(void) {
     apicid = lapicid();    // 先找到 apicid  在后在cpus表中搜索与apicid匹配的cpu数据
     // APIC IDs are not guaranteed to be contiguous. Maybe we should have
     // a reverse map, or reserve a register to store &cpus[i].
-    for (i = 0; i < ncpu; ++i) {
+    for (i = 0; i < cpu_count; ++i) {
         if (cpus[i].apicid == apicid)
             return &cpus[i];
     }

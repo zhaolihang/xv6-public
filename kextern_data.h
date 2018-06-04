@@ -20,7 +20,7 @@ extern uint  vectors[];    // in vectors.S: array of 256 entry pointers  vectors
 extern char _binary_initcode_start[], _binary_initcode_size[];
 
 extern struct cpu       cpus[MAX_CPU];
-extern int              ncpu;
+extern int              cpu_count;
 extern struct device_rw device_rw[];    // 设备读写指针表
 
 #endif

@@ -11,9 +11,12 @@
 #include "mmu.h"
 #include "proc.h"
 
-struct cpu cpus[MAX_CPU];    //8个核心
-int        ncpu;
+// 该文件主要是初始化这4个变量
+// lapicaddr cpu_count ioapicid  cpu.apicid
+
+int        cpu_count;
 uchar      ioapicid;
+struct cpu cpus[MAX_CPU];
 
 static uchar sum(uchar* addr, int len)    // 校验和
 {
@@ -93,15 +96,17 @@ void mpinit(void)    // 获取 ioapicid 并且获取每个cpu的apic id 存放�
 
     if ((conf = mpconfig(&mp)) == 0)
         panic("Expect to run on an SMP");
-    ismp  = true;
-    lapic = ( uint* )conf->lapicaddr;
+
+    set_lapicaddr(( uint* )conf->lapicaddr);
+    ismp = true;
+
     for (p = ( uchar* )(conf + 1), e = ( uchar* )conf + conf->length; p < e;) {
         switch (*p) {
             case MPPROC:
                 proc = ( struct mpproc* )p;
-                if (ncpu < MAX_CPU) {
-                    cpus[ncpu].apicid = proc->apicid;    // apicid may differ from ncpu
-                    ncpu++;
+                if (cpu_count < MAX_CPU) {
+                    cpus[cpu_count].apicid = proc->apicid;    // apicid may differ from cpu_count
+                    cpu_count++;
                 }
                 p += sizeof(struct mpproc);
                 continue;

@@ -73,13 +73,14 @@ void  init_kernel_mem_2(void*, void*);
 void kbdintr(void);
 
 // lapic.c
-void                  cmostime(struct rtcdate* r);
-int                   lapicid(void);
-extern volatile uint* lapic;
-void                  lapiceoi(void);
-void                  lapicinit(void);
-void                  lapicstartap(uchar, uint);
-void                  microdelay(int);
+void cmostime(struct rtcdate* r);
+int  lapicid(void);
+void lapiceoi(void);
+void lapicinit(void);
+void lapicstartap(uchar, uint);
+void microdelay(int);
+void set_lapicaddr(uint*);
+
 
 // log.c
 void initlog(int dev);
@@ -88,8 +89,7 @@ void begin_op();
 void end_op();
 
 // mp.c
-extern int ismp;
-void       mpinit(void);
+void mpinit(void);
 
 // picirq.c
 void picenable(int);

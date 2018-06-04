@@ -20,7 +20,6 @@ struct cpu {
     struct proc*     proc;             // The process running on this cpu or null // cpu 正在运行的进程
 };
 
-//PAGEBREAK: 17
 // Saved registers for kernel context switches.
 // Don't need to save all the segment registers (%cs, etc),
 // because they are constant across kernel contexts.

@@ -76,7 +76,7 @@ static void start_others(void) {
     // entryother.bin 这段代码写到物理内存0x7000处 因为 entryother.bin 的vstart是0x7000
     memmove(code, _binary_entryother_start, ( uint )_binary_entryother_size);
 
-    for (c = cpus; c < cpus + ncpu; c++) {
+    for (c = cpus; c < cpus + cpu_count; c++) {
         if (c == mycpu())    // We've started already.
             continue;
 

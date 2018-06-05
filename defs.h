@@ -38,7 +38,7 @@ int          filewrite(struct file*, char*, int n);
 void          readsb(int dev, struct superblock* sb);
 int           dirlink(struct inode*, char*, uint);
 struct inode* dirlookup(struct inode*, char*, uint*);
-struct inode* ialloc(uint, short);
+struct inode* inode_alloc(uint, short);
 struct inode* idup(struct inode*);
 void          iinit(int dev);
 void          ilock(struct inode*);

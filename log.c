@@ -51,14 +51,14 @@ static void recover_from_log(void);
 static void commit();
 
 void initlog(int dev) {
-    if (sizeof(struct logheader) >= BSIZE)
+    if (sizeof(struct logheader) >= BLOCK_SIZE)
         panic("initlog: too big logheader");
 
     struct superblock sb;
     initlock(&log.lock, "log");
     readsb(dev, &sb);
-    log.start = sb.logstart;
-    log.size  = sb.nlog;
+    log.start = sb.log_start;
+    log.size  = sb.log_num;
     log.dev   = dev;
     recover_from_log();
 }
@@ -70,7 +70,7 @@ static void install_trans(void) {
     for (tail = 0; tail < log.lh.n; tail++) {
         struct buf* lbuf = bread(log.dev, log.start + tail + 1);    // read log block
         struct buf* dbuf = bread(log.dev, log.lh.block[tail]);      // read dst
-        memmove(dbuf->data, lbuf->data, BSIZE);                     // copy block to dst
+        memmove(dbuf->data, lbuf->data, BLOCK_SIZE);                     // copy block to dst
         bwrite(dbuf);                                               // write dst to disk
         brelse(lbuf);
         brelse(dbuf);
@@ -166,7 +166,7 @@ static void write_log(void) {
     for (tail = 0; tail < log.lh.n; tail++) {
         struct buf* to   = bread(log.dev, log.start + tail + 1);    // log block
         struct buf* from = bread(log.dev, log.lh.block[tail]);      // cache block
-        memmove(to->data, from->data, BSIZE);
+        memmove(to->data, from->data, BLOCK_SIZE);
         bwrite(to);    // write the log
         brelse(from);
         brelse(to);

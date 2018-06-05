@@ -236,8 +236,8 @@ static struct inode* create(char* path, short type, short major, short minor) {
         return 0;
     }
 
-    if ((ip = ialloc(dp->dev, type)) == 0)
-        panic("create: ialloc");
+    if ((ip = inode_alloc(dp->dev, type)) == 0)
+        panic("create: inode_alloc");
 
     ilock(ip);
     ip->major = major;

@@ -72,7 +72,7 @@ static void idestart(struct buf* b) {
         panic("idestart");
     if (b->blockno >= FSSIZE)
         panic("incorrect blockno");
-    int sector_per_block = BSIZE / SECTOR_SIZE;
+    int sector_per_block = BLOCK_SIZE / SECTOR_SIZE;
     int sector           = b->blockno * sector_per_block;
     int read_cmd         = (sector_per_block == 1) ? IDE_CMD_READ : IDE_CMD_RDMUL;
     int write_cmd        = (sector_per_block == 1) ? IDE_CMD_WRITE : IDE_CMD_WRMUL;
@@ -89,7 +89,7 @@ static void idestart(struct buf* b) {
     outb(0x1f6, 0xe0 | ((b->dev & 1) << 4) | ((sector >> 24) & 0x0f));
     if (b->flags & B_DIRTY) {
         outb(0x1f7, write_cmd);
-        outsl(0x1f0, b->data, BSIZE / 4);
+        outsl(0x1f0, b->data, BLOCK_SIZE / 4);
     } else {
         outb(0x1f7, read_cmd);
     }
@@ -110,7 +110,7 @@ void ideintr(void) {
 
     // Read data if needed.
     if (!(b->flags & B_DIRTY) && idewait(1) >= 0)
-        insl(0x1f0, b->data, BSIZE / 4);
+        insl(0x1f0, b->data, BLOCK_SIZE / 4);
 
     // Wake process waiting for this buf.
     b->flags |= B_VALID;

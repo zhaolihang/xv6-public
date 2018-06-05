@@ -85,7 +85,7 @@ found:
 
     // Allocate kernel stack.
     if ((p->kstack = kalloc_page()) == 0) {    //分配一个4k的空闲内存作为内核栈
-        p->state = UNUSED;                // 栈空间分配失败返还这个结构体
+        p->state = UNUSED;                     // 栈空间分配失败返还这个结构体
         return 0;
     }
     sp = p->kstack + KSTACK_SIZE;    // 栈顶
@@ -116,17 +116,15 @@ found:
 
 // Set up first user process.
 void userinit(void) {
-    struct proc* p;
+    struct proc* p = initproc = allocproc();
 
-    p = allocproc();
-
-    initproc = p;
     if ((p->pgdir = alloc_kvm_pgdir()) == 0)    //分配一个内核预置的页目录表
         panic("userinit: out of memory?");
-    init_initcode_uvm(p->pgdir, _binary_initcode_start,
-                      ( int )_binary_initcode_size);    // 在刚刚分配的页目录表中初始化initcode.bin
-    p->sz = PAGE_SIZE;                                  // 进程使用的内存大小
-    memset(p->tf, 0, sizeof(*p->tf));                   // 初始化 trapframe
+
+    // 在刚刚分配的页目录表中初始化initcode.bin
+    init_initcode_uvm(p->pgdir, _binary_initcode_start, ( int )_binary_initcode_size);
+    p->sz = PAGE_SIZE;                   // 进程使用的内存大小
+    memset(p->tf, 0, sizeof(*p->tf));    // 初始化 trapframe
     p->tf->cs     = (SEG_UCODE_INDEX << 3) | DPL_USER;
     p->tf->ds     = (SEG_UDATA_INDEX << 3) | DPL_USER;
     p->tf->es     = p->tf->ds;

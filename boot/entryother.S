@@ -59,7 +59,7 @@ start32:
   orl     $(CR4_PSE), %eax # 开启4m的页
   movl    %eax, %cr4
   # Use entry_page_directory as our initial page table
-  movl    (start-12), %eax   #    公共的entry_page_directory 的物理地址是由bsp 设置在物理地址 (0x7000-12) 处 
+  movl    (start-4), %eax   #    公共的entry_page_directory 的物理地址是由bsp 设置在物理地址 (0x7000-4) 处 
   movl    %eax, %cr3
   # Turn on paging.
   movl    %cr0, %eax
@@ -67,9 +67,9 @@ start32:
   movl    %eax, %cr0 #  开启分页
 
   # Switch to the stack allocated by start_others()
-  movl    (start-4), %esp  #  设置这个cpu的单独栈
+  movl    (start-8), %esp  #  设置这个cpu的单独栈
   # Call mpenter()  in main.c
-  call	 *(start-8) # mpenter函数 的虚拟地址是由bsp 设置在物理地址 (0x7000-8)处, mpenter在内核的高地址处 这样就调转到了高地址处了
+  call	 *(start-12) # mpenter函数 的虚拟地址是由bsp 设置在物理地址 (0x7000-12)处, mpenter在内核的高地址处 这样就调转到了高地址处了
 
 .p2align 2
 gdt:

@@ -19,22 +19,26 @@ int main(void) {
     init_kvm_pgdir();    // 分配 kernel page directory table
     switch2kvm();        // 换到内核页表 lcr3
 
-    mpinit();          // detect other processors  smp架构获取其他cpu的信息
-    lapicinit();       // interrupt controller  配置本地中断控制器
-    seginit();         // segment descriptors  设置当前cpu的gdt
-    picinit();         // disable pic  禁用8259中断
-    ioapicinit();      // another interrupt controller  配置io中断控制器
-    consoleinit();     // console hardware  绑定 读写函数指针 开启键盘中断
-    uartinit();        // serial port  打开串口 可能是显示器的数据口
-    pinit();           // process table 初始化进程表的锁
-    tvinit();          // trap vectors  初始化设置中断向量表,cpu并没有加载到idtr中
-    binit();           // buffer cache  初始化io的环形缓冲区
-    fileinit();        // file table  初始化文件表的锁
-    ideinit();         // disk   初始化硬盘,并且打开ide中断
+    mpinit();    // detect other processors  smp架构获取其他cpu的信息
+
+    lapicinit();    // interrupt controller  配置本地中断控制器
+    seginit();      // segment descriptors  设置当前cpu的gdt
+
+    picinit();        // disable pic  禁用8259中断
+    ioapicinit();     // another interrupt controller  配置io中断控制器
+    consoleinit();    // console hardware  绑定 读写函数指针 开启键盘中断
+    uartinit();       // serial port  打开串口 可能是显示器的数据口
+    pinit();          // process table 初始化进程表的锁
+    tvinit();         // trap vectors  初始化设置中断向量表,cpu并没有加载到idtr中
+    binit();          // buffer cache  初始化io的环形缓冲区
+    fileinit();       // file table  初始化文件表的锁
+    ideinit();        // disk   初始化硬盘,并且打开ide中断
+
     start_others();    // start other processors   启动其他cpu 并进入scheduler 函数
 
     // must come after start_others()  初始化其他的空闲内存
     init_kernel_mem_2(C_P2V(4 * 1024 * 1024), C_P2V(PHY_TOP_LIMIT));
+
     userinit();    // first user process 在进程表中加入第一个用户进程  很重要!!!!!!!!!!!!!!!
     mp_main();     // finish this processor's setup  finish bsp cpu 然后执行scheduler 函数
 }
@@ -83,10 +87,10 @@ static void start_others(void) {
         // Tell entryother.S what stack to use, where to enter, and what
         // pgdir to use. We cannot use kernel_page_dir yet, because the AP processor
         // is running in low  memory, so we use entry_page_directory for the APs too.
-        stack                 = kalloc_page();                           //  分配4K的栈  stack是栈最低地址处
-        *( void** )(code - 4) = stack + KSTACK_SIZE;                     // ap使用在内存中分配的栈 ，最高地址处即当前的栈顶
-        *( void** )(code - 8) = mpenter;                                 // ap cpu的高地址c代码
-        *( int** )(code - 12) = ( void* )C_V2P(entry_page_directory);    // ap cpu 初始的页目录表物理地址
+        stack                  = kalloc_page();                           //  分配4K的栈  stack是栈最低地址处
+        *( int** )(code - 4)   = ( void* )C_V2P(entry_page_directory);    // ap cpu 初始的页目录表物理地址
+        *( void** )(code - 8)  = stack + PAGE_SIZE;                       // ap使用在内存中分配的栈 ，最高地址处即当前的栈顶
+        *( void** )(code - 12) = mpenter;                                 // ap cpu的高地址c代码
 
         lapicstartap(c->apicid, C_V2P(code));    // bsp cpu send message to ap cpu by IPI , CPU之间通信
 

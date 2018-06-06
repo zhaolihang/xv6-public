@@ -102,7 +102,7 @@ int sys_fstat(void) {
 
 // Create the path new as a link to the same inode as old.
 int sys_link(void) {
-    char          name[DIR_NAME_MAX_SIZE], *new, *old;
+    char          name[DIRSIZ], *new, *old;
     struct inode *dp, *ip;
 
     if (argstr(0, &old) < 0 || argstr(1, &new) < 0)
@@ -151,7 +151,7 @@ bad:
 // Is the directory dp empty except for "." and ".." ?
 static int isdirempty(struct inode* dp) {
     int           off;
-    struct direntry de;
+    struct dirent de;
 
     for (off = 2 * sizeof(de); off < dp->size; off += sizeof(de)) {
         if (readi(dp, ( char* )&de, off, sizeof(de)) != sizeof(de))
@@ -165,8 +165,8 @@ static int isdirempty(struct inode* dp) {
 //PAGEBREAK!
 int sys_unlink(void) {
     struct inode *ip, *dp;
-    struct direntry de;
-    char          name[DIR_NAME_MAX_SIZE], *path;
+    struct dirent de;
+    char          name[DIRSIZ], *path;
     uint          off;
 
     if (argstr(0, &path) < 0)
@@ -221,7 +221,7 @@ bad:
 static struct inode* create(char* path, short type, short major, short minor) {
     uint          off;
     struct inode *ip, *dp;
-    char          name[DIR_NAME_MAX_SIZE];
+    char          name[DIRSIZ];
 
     if ((dp = nameiparent(path, name)) == 0)
         return 0;

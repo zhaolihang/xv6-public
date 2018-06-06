@@ -15,13 +15,13 @@
 #define static_assert(a, b) do { switch (0) case 0 : case (a):; } while (0)
 #endif
 
-#define INODE_NUM 200
+#define NINODES 200
 
 // Disk layout:
 // [ boot block | sb block | log | inode blocks | free bit map | data blocks ]
 
 int bitmap_num     = FSSIZE / (BLOCK_SIZE * 8) + 1;
-int inodeblock_num = INODE_NUM / INODES_PER_BLOCK + 1;
+int inodeblock_num = NINODES / INODES_PER_BLOCK + 1;
 int log_num        = LOGSIZE;
 int meta_num;     // Number of meta blocks (boot, sb, log_num, inode, bitmap)
 int block_num;    // Number of data blocks
@@ -29,8 +29,8 @@ int block_num;    // Number of data blocks
 int               fsfd;
 struct superblock sb;
 char              zeroes[BLOCK_SIZE];
-uint              free_inode_index = 1;
-uint              free_block_index;
+uint              freeinode = 1;
+uint              freeblock;
 
 
 void bitmap_alloc(int);
@@ -68,7 +68,7 @@ bool str_start_with(const char* for_search, const char* search) {
     } else {
         int i;
         for (i = 0; i < search_size; i++) {
-            if (*(for_search + i) != *(search + i)) {
+            if ((*for_search++) != (*search++)) {
                 return false;
             }
         }
@@ -78,8 +78,8 @@ bool str_start_with(const char* for_search, const char* search) {
 
 int main(int argc, char* argv[]) {
     int           i, count, fd;
-    uint          root_inode, inum, off;
-    struct direntry de;
+    uint          rootino, inum, off;
+    struct dirent de;
     char          buf[BLOCK_SIZE];
     struct dinode disk_inode;
 
@@ -92,7 +92,7 @@ int main(int argc, char* argv[]) {
     }
 
     assert((BLOCK_SIZE % sizeof(struct dinode)) == 0);
-    assert((BLOCK_SIZE % sizeof(struct direntry)) == 0);
+    assert((BLOCK_SIZE % sizeof(struct dirent)) == 0);
 
     fsfd = open(argv[1], O_RDWR | O_CREAT | O_TRUNC, 0666);
     if (fsfd < 0) {
@@ -106,7 +106,7 @@ int main(int argc, char* argv[]) {
 
     sb.size         = xint(FSSIZE);
     sb.block_num    = xint(block_num);
-    sb.inode_num    = xint(INODE_NUM);
+    sb.inode_num    = xint(NINODES);
     sb.log_num      = xint(log_num);
     sb.log_start    = xint(2);
     sb.inode_start  = xint(2 + log_num);
@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
     char* format = "meta_num %d (boot, super, log blocks %u inode blocks %u, bitmap blocks %u) blocks %d total %d\n";
     printf(format, meta_num, log_num, inodeblock_num, bitmap_num, block_num, FSSIZE);
 
-    free_block_index = meta_num;    // the first free block that we can allocate
+    freeblock = meta_num;    // the first free block that we can allocate
 
     for (i = 0; i < FSSIZE; i++)
         write_sector(i, zeroes);
@@ -124,18 +124,18 @@ int main(int argc, char* argv[]) {
     memmove(buf, &sb, sizeof(sb));
     write_sector(1, buf);
 
-    root_inode = inode_alloc(T_DIR);
-    assert(root_inode == ROOT_INODE);
+    rootino = inode_alloc(T_DIR);
+    assert(rootino == ROOT_INODE);
 
     bzero(&de, sizeof(de));
-    de.inum = xshort(root_inode);
+    de.inum = xshort(rootino);
     strcpy(de.name, ".");
-    append_data_to_inode(root_inode, &de, sizeof(de));
+    append_data_to_inode(rootino, &de, sizeof(de));
 
     bzero(&de, sizeof(de));
-    de.inum = xshort(root_inode);
+    de.inum = xshort(rootino);
     strcpy(de.name, "..");
-    append_data_to_inode(root_inode, &de, sizeof(de));    //  [.]  [..]  都指向自身
+    append_data_to_inode(rootino, &de, sizeof(de));    //  [.]  [..]  都指向自身
 
     for (i = 2; i < argc; i++) {
         assert(index(argv[i], '/') == 0);    // 不能包含 '/'
@@ -158,8 +158,8 @@ int main(int argc, char* argv[]) {
 
         bzero(&de, sizeof(de));
         de.inum = xshort(inum);
-        strncpy(de.name, argv[i], DIR_NAME_MAX_SIZE);
-        append_data_to_inode(root_inode, &de, sizeof(de));    // 在根目录下创建文件
+        strncpy(de.name, argv[i], DIRSIZ);
+        append_data_to_inode(rootino, &de, sizeof(de));    // 在根目录下创建文件
 
         while ((count = read(fd, buf, sizeof(buf))) > 0)    // 追加文件内容
             append_data_to_inode(inum, buf, count);
@@ -169,14 +169,14 @@ int main(int argc, char* argv[]) {
 
     if (false) {
         // fix size of root inode dir    根节点为什么要对齐???
-        read_inode(root_inode, &disk_inode);
+        read_inode(rootino, &disk_inode);
         off             = xint(disk_inode.size);
         off             = ((off / BLOCK_SIZE) + 1) * BLOCK_SIZE;
         disk_inode.size = xint(off);
-        write_inode(root_inode, &disk_inode);
+        write_inode(rootino, &disk_inode);
     }
 
-    bitmap_alloc(free_block_index);
+    bitmap_alloc(freeblock);
 
     exit(0);
 }
@@ -227,7 +227,7 @@ void read_sector(uint sec, void* buf) {
 }
 
 uint inode_alloc(ushort type) {
-    uint          inum = free_inode_index++;
+    uint          inum = freeinode++;
     struct dinode disk_inode;
 
     bzero(&disk_inode, sizeof(disk_inode));
@@ -259,7 +259,7 @@ void append_data_to_inode(uint inum, void* data, int n) {
     uint          file_block_num, off, count;
     struct dinode disk_inode;
     char          buf[BLOCK_SIZE];
-    uint          indirect[FIRST_INDIRECT_NUM];
+    uint          indirect[INDIRECT_NUM];
     uint          block_index;
 
     read_inode(inum, &disk_inode);
@@ -270,16 +270,16 @@ void append_data_to_inode(uint inum, void* data, int n) {
         assert(file_block_num < FILE_MAX_BLOCKS);
         if (file_block_num < DIRECT_NUM) {
             if (xint(disk_inode.addrs[file_block_num]) == 0) {
-                disk_inode.addrs[file_block_num] = xint(free_block_index++);
+                disk_inode.addrs[file_block_num] = xint(freeblock++);
             }
             block_index = xint(disk_inode.addrs[file_block_num]);
         } else {
             if (xint(disk_inode.addrs[DIRECT_NUM]) == 0) {
-                disk_inode.addrs[DIRECT_NUM] = xint(free_block_index++);
+                disk_inode.addrs[DIRECT_NUM] = xint(freeblock++);
             }
             read_sector(xint(disk_inode.addrs[DIRECT_NUM]), ( char* )indirect);
             if (indirect[file_block_num - DIRECT_NUM] == 0) {
-                indirect[file_block_num - DIRECT_NUM] = xint(free_block_index++);
+                indirect[file_block_num - DIRECT_NUM] = xint(freeblock++);
                 write_sector(xint(disk_inode.addrs[DIRECT_NUM]), ( char* )indirect);
             }
             block_index = xint(indirect[file_block_num - DIRECT_NUM]);

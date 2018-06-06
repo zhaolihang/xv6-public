@@ -31,23 +31,23 @@ struct superblock {
 #define INODE_VERSION_64 1
 // On-disk inode structure
 struct dinode {
-    short version;               // version type
-    short type;                  // File type
-    short major;                 // Major device number (T_DEV only)
-    short minor;                 // Minor device number (T_DEV only)
-    uint  nlink;                 // Number of links to inode in file system
-    uint  size;                  // Size of file (bytes)
-    uint  creattime;             // timestamp
-    uint  visittime;             // timestamp
-    uint  writetime;             // timestamp
-    uint  user;                  // user
-    uint  group;                 // group
-    uint  permission;            // permission
-    uint  addrs[DIRECT_NUM];     // Data block addresses
-    uint  first_in_addrs[1];     // first block addresses
-    uint  second_in_addrs[1];    // second block addresses
-    uint  third_in_addrs[4];     // third block addresses
-    uint  reserved[4];
+    short version;                  // version type
+    short type;                     // File type
+    short major;                    // Major device number (T_DEV only)
+    short minor;                    // Minor device number (T_DEV only)
+    uint  nlink;                    // Number of links to inode in file system
+    uint  size;                     // Size of file (bytes)
+    uint  creattime;                // timestamp
+    uint  visittime;                // timestamp
+    uint  writetime;                // timestamp
+    uint  user;                     // user
+    uint  group;                    // group
+    uint  permission;               // permission
+    uint  addrs[DIRECT_NUM + 6];    // Data block addresses
+    // uint  first_in_addrs[1];     // first block addresses
+    // uint  second_in_addrs[1];    // second block addresses
+    // uint  third_in_addrs[4];     // third block addresses
+    uint reserved[4];
     //  DIRECT_NUM个直接块  1、2索引各一个、3级索引4个 每个文件最多可以有 FILE_MAX_BLOCKS*512≈4GB
 };
 

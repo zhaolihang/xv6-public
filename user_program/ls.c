@@ -13,18 +13,23 @@ char* fmtname(char* path) {
     p++;
 
     // Return blank-padded name.
-    if (strlen(p) >= DIR_NAME_MAX_SIZE)
+    int length = strlen(p);
+    if (length >= DIR_NAME_MAX_SIZE)
         return p;
-    memmove(buf, p, strlen(p));
-    memset(buf + strlen(p), ' ', DIR_NAME_MAX_SIZE - strlen(p));
+    memmove(buf, p, length);
+    memset(buf + length, ' ', DIR_NAME_MAX_SIZE - length);
+    if (length < 32) {
+        length = 32;
+    }
+    memset(buf + length, '\0', DIR_NAME_MAX_SIZE - length);
     return buf;
 }
 
 void ls(char* path) {
-    char          buf[512], *p;
-    int           fd;
+    char            buf[512], *p;
+    int             fd;
     struct direntry de;
-    struct stat   st;
+    struct stat     st;
 
     if ((fd = open(path, 0)) < 0) {
         printf(2, "ls: cannot open %s\n", path);

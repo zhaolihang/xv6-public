@@ -72,12 +72,12 @@ struct segdesc {
 };
 
 // Normal segment
-#define MAKE_SEG_DESCRIPTOR_32(type, base, lim, dpl) (struct segdesc)    \
+#define MAKE_NOR_SEG_DESCRIPTOR(type, base, lim, dpl) (struct segdesc)    \
 { ((lim) >> 12) & 0xffff, (uint)(base) & 0xffff,      \
   ((uint)(base) >> 16) & 0xff, type, 1, dpl, 1,       \
   (uint)(lim) >> 28, 0, 0, 1, 1, (uint)(base) >> 24 }
  
-#define MAKE_SEG_DESCRIPTOR_16(type, base, lim, dpl) (struct segdesc)  \
+#define MAKE_SYS_SEG_DESCRIPTOR(type, base, lim, dpl) (struct segdesc)  \
 { (lim) & 0xffff, (uint)(base) & 0xffff,              \
   ((uint)(base) >> 16) & 0xff, type, 1, dpl, 1,       \
   (uint)(lim) >> 16, 0, 0, 1, 0, (uint)(base) >> 24 }

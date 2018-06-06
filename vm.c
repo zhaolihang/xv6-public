@@ -19,10 +19,10 @@ void seginit(void) {
     // an interrupt from CPL=0 to DPL=3.
     c = &cpus[cpuid()];
 
-    c->gdt[SEG_KCODE_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_X | APP_SEG_TYPE_R, 0, 0xffffffff, 0);
-    c->gdt[SEG_KDATA_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_W, 0, 0xffffffff, 0);
-    c->gdt[SEG_UCODE_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_X | APP_SEG_TYPE_R, 0, 0xffffffff, DPL_USER);
-    c->gdt[SEG_UDATA_INDEX] = MAKE_SEG_DESCRIPTOR_32(APP_SEG_TYPE_W, 0, 0xffffffff, DPL_USER);
+    c->gdt[SEG_KCODE_INDEX] = MAKE_NOR_SEG_DESCRIPTOR(APP_SEG_TYPE_X | APP_SEG_TYPE_R, 0, 0xffffffff, 0);
+    c->gdt[SEG_KDATA_INDEX] = MAKE_NOR_SEG_DESCRIPTOR(APP_SEG_TYPE_W, 0, 0xffffffff, 0);
+    c->gdt[SEG_UCODE_INDEX] = MAKE_NOR_SEG_DESCRIPTOR(APP_SEG_TYPE_X | APP_SEG_TYPE_R, 0, 0xffffffff, DPL_USER);
+    c->gdt[SEG_UDATA_INDEX] = MAKE_NOR_SEG_DESCRIPTOR(APP_SEG_TYPE_W, 0, 0xffffffff, DPL_USER);
 
     lgdt(c->gdt, sizeof(c->gdt));
 }
@@ -162,15 +162,18 @@ void switch2uvm(struct proc* p)    // set ltr  and  lcr3
         panic("switch2uvm: no pgdir");
 
     pushcli();
-    mycpu()->gdt[SEG_TSS_INDEX]   = MAKE_SEG_DESCRIPTOR_16(SYS_SEG_TYPE_T32A, &mycpu()->tss, sizeof(mycpu()->tss) - 1, 0);    // 初始化 tss
-    mycpu()->gdt[SEG_TSS_INDEX].s = 0;
-    mycpu()->tss.ss0              = SEG_KDATA_INDEX << 3;
-    mycpu()->tss.esp0             = ( uint )p->kstack + KSTACK_SIZE;    // 特权级的栈 用户空间发生中断的时候用
-    // setting IOPL=0 in eflags *and* iomb beyond the tss segment limit
-    // forbids I/O instructions (e.g., inb and outb) from user space
-    mycpu()->tss.iomb = ( ushort )0xFFFF;    // 没有io开放
-    ltr(SEG_TSS_INDEX << 3);                 // 任务标志tss 加载到 tr中
-    lcr3(C_V2P(p->pgdir));                   // switch to process's address space  // 加载cr3 用户的页目录表
+    {
+        // 初始化 tss
+        mycpu()->gdt[SEG_TSS_INDEX]   = MAKE_SYS_SEG_DESCRIPTOR(SYS_SEG_TYPE_T32A, &mycpu()->tss, sizeof(mycpu()->tss) - 1, 0);
+        mycpu()->gdt[SEG_TSS_INDEX].s = 0;    // sys seg
+        mycpu()->tss.ss0              = SEG_KDATA_INDEX << 3;
+        mycpu()->tss.esp0             = ( uint )p->kstack + KSTACK_SIZE;    // 特权级的栈 用户空间发生中断的时候用
+        // setting IOPL=0 in eflags *and* iomb beyond the tss segment limit
+        // forbids I/O instructions (e.g., inb and outb) from user space
+        mycpu()->tss.iomb = ( ushort )0xFFFF;    // 没有io开放
+        ltr(SEG_TSS_INDEX << 3);                 // 任务标志tss(在gdt中)加载到 tr中
+        lcr3(C_V2P(p->pgdir));                   // switch to process's address space  // 加载cr3 用户的页目录表
+    }
     popcli();
 }
 

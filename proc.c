@@ -121,7 +121,7 @@ void userinit(void) {
     if ((p->pgdir = alloc_kvm_pgdir()) == 0)    //分配一个内核预置的页目录表
         panic("userinit: out of memory?");
 
-    // 在刚刚分配的页目录表中初始化initcode.bin
+    // 在刚刚分配的页目录表中初始化initcode.bin, 映射到虚拟地址0
     init_initcode_uvm(p->pgdir, _binary_initcode_start, ( int )_binary_initcode_size);
     p->sz = PAGE_SIZE;                   // 进程使用的内存大小
     memset(p->tf, 0, sizeof(*p->tf));    // 初始化 trapframe
@@ -326,10 +326,16 @@ void scheduler(void)    // no return
             // before jumping back to us.
             c->proc = p;      // cpu 当前的进程是p
             switch2uvm(p);    // 切换成用户的虚拟内存 并加载p 的tss 到tr 中 因为 中断的时候切换到内核需要使用0特权级的栈 由硬件完成 所以不可能绕过tss
-            p->state = RUNNING;    // 选择一个可运行的RUNNABLE(就绪态) 的进程 ,运行 切换到 运行态(RUNNING)
+            p->state = RUNNING;    // 选择一个可运行的RUNNABLE(就绪态) 的进程 ,运行 切换到 RUNNING(运行态)
 
-            // = call swtch : push p->context ; push &(c->scheduler) ; push eip ; movl swtch eip
-            swtch(&(c->scheduler), p->context);    // 切换到 进程 运行p 运行 汇编代码swtch.S中
+            /*等价于:
+                push p->context ; 
+                push &(c->scheduler) ; 
+                push eip ; 
+                jump swtch  ;
+            */
+            swtch(&(c->scheduler), p->context);    // 切换到进程p, 运行汇编代码swtch.S中
+
             // p  return point
             switch2kvm();    // p 被剥夺 继续执行 先切换回内核空间 这时tr中仍然是p 的tss
 

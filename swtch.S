@@ -9,7 +9,7 @@
 # void swtch(struct context **old, struct context *new)
 # push new 
 # push old
-# push eip  call 调用段内转移压如eip
+# push eip   #call调用段内转移压入eip
 .globl swtch
 swtch:
   movl 4(%esp), %eax #  &(c->scheduler)

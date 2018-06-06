@@ -4,7 +4,7 @@
 #include "fs.h"
 
 char* fmtname(char* path) {
-    static char buf[DIRSIZ + 1];
+    static char buf[DIR_NAME_MAX_SIZE + 1];
     char*       p;
 
     // Find first character after last slash.
@@ -13,17 +13,17 @@ char* fmtname(char* path) {
     p++;
 
     // Return blank-padded name.
-    if (strlen(p) >= DIRSIZ)
+    if (strlen(p) >= DIR_NAME_MAX_SIZE)
         return p;
     memmove(buf, p, strlen(p));
-    memset(buf + strlen(p), ' ', DIRSIZ - strlen(p));
+    memset(buf + strlen(p), ' ', DIR_NAME_MAX_SIZE - strlen(p));
     return buf;
 }
 
 void ls(char* path) {
     char          buf[512], *p;
     int           fd;
-    struct dirent de;
+    struct direntry de;
     struct stat   st;
 
     if ((fd = open(path, 0)) < 0) {
@@ -43,7 +43,7 @@ void ls(char* path) {
             break;
 
         case T_DIR:
-            if (strlen(path) + 1 + DIRSIZ + 1 > sizeof buf) {
+            if (strlen(path) + 1 + DIR_NAME_MAX_SIZE + 1 > sizeof buf) {
                 printf(1, "ls: path too long\n");
                 break;
             }
@@ -53,8 +53,8 @@ void ls(char* path) {
             while (read(fd, &de, sizeof(de)) == sizeof(de)) {
                 if (de.inum == 0)
                     continue;
-                memmove(p, de.name, DIRSIZ);
-                p[DIRSIZ] = 0;
+                memmove(p, de.name, DIR_NAME_MAX_SIZE);
+                p[DIR_NAME_MAX_SIZE] = 0;
                 if (stat(buf, &st) < 0) {
                     printf(1, "ls: cannot stat %s\n", buf);
                     continue;

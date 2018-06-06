@@ -1154,7 +1154,7 @@ void bigfile(void) {
 void fourteen(void) {
     int fd;
 
-    // DIRSIZ is 14.
+    // DIR_NAME_MAX_SIZE is 252.
     printf(1, "fourteen test\n");
 
     if (mkdir("12345678901234") != 0) {

@@ -338,7 +338,7 @@ void iunlockput(struct inode* ip) {
 //
 // The content (data) associated with each inode is stored
 // in blocks on the disk. The first DIRECT_NUM block numbers
-// are listed in ip->addrs[].  The next INDIRECT_NUM blocks are
+// are listed in ip->addrs[].  The next FIRST_INDIRECT_NUM blocks are
 // listed in block ip->addrs[DIRECT_NUM].
 
 // Return the disk block address of the nth block in inode ip.
@@ -354,7 +354,7 @@ static uint bmap(struct inode* ip, uint bn) {
     }
     bn -= DIRECT_NUM;
 
-    if (bn < INDIRECT_NUM) {
+    if (bn < FIRST_INDIRECT_NUM) {
         // Load indirect block, allocating if necessary.
         if ((addr = ip->addrs[DIRECT_NUM]) == 0)
             ip->addrs[DIRECT_NUM] = addr = balloc(ip->dev);
@@ -391,7 +391,7 @@ static void itrunc(struct inode* ip) {
     if (ip->addrs[DIRECT_NUM]) {
         bp = bread(ip->dev, ip->addrs[DIRECT_NUM]);
         a  = ( uint* )bp->data;
-        for (j = 0; j < INDIRECT_NUM; j++) {
+        for (j = 0; j < FIRST_INDIRECT_NUM; j++) {
             if (a[j])
                 bfree(ip->dev, a[j]);
         }
@@ -478,14 +478,14 @@ int writei(struct inode* ip, char* src, uint off, uint n) {
 // Directories
 
 int namecmp(const char* s, const char* t) {
-    return strncmp(s, t, DIRSIZ);
+    return strncmp(s, t, DIR_NAME_MAX_SIZE);
 }
 
 // Look for a directory entry in a directory.
 // If found, set *poff to byte offset of entry.
 struct inode* dirlookup(struct inode* dp, char* name, uint* poff) {
     uint          off, inum;
-    struct dirent de;
+    struct direntry de;
 
     if (dp->type != T_DIR)
         panic("dirlookup not DIR");
@@ -510,7 +510,7 @@ struct inode* dirlookup(struct inode* dp, char* name, uint* poff) {
 // Write a new directory entry (name, inum) into the directory dp.
 int dirlink(struct inode* dp, char* name, uint inum) {
     int           off;
-    struct dirent de;
+    struct direntry de;
     struct inode* ip;
 
     // Check that name is not present.
@@ -519,7 +519,7 @@ int dirlink(struct inode* dp, char* name, uint inum) {
         return -1;
     }
 
-    // Look for an empty dirent.
+    // Look for an empty direntry.
     for (off = 0; off < dp->size; off += sizeof(de)) {
         if (readi(dp, ( char* )&de, off, sizeof(de)) != sizeof(de))
             panic("dirlink read");
@@ -527,7 +527,7 @@ int dirlink(struct inode* dp, char* name, uint inum) {
             break;
     }
 
-    strncpy(de.name, name, DIRSIZ);
+    strncpy(de.name, name, DIR_NAME_MAX_SIZE);
     de.inum = inum;
     if (writei(dp, ( char* )&de, off, sizeof(de)) != sizeof(de))
         panic("dirlink");
@@ -562,8 +562,8 @@ static char* skipelem(char* path, char* name) {
     while (*path != '/' && *path != 0)
         path++;
     len = path - s;
-    if (len >= DIRSIZ)
-        memmove(name, s, DIRSIZ);
+    if (len >= DIR_NAME_MAX_SIZE)
+        memmove(name, s, DIR_NAME_MAX_SIZE);
     else {
         memmove(name, s, len);
         name[len] = 0;
@@ -575,7 +575,7 @@ static char* skipelem(char* path, char* name) {
 
 // Look up and return the inode for a path name.
 // If parent != 0, return the inode for the parent and copy the final
-// path element into name, which must have room for DIRSIZ bytes.
+// path element into name, which must have room for DIR_NAME_MAX_SIZE bytes.
 // Must be called inside a transaction since it calls iput().
 static struct inode* namex(char* path, int nameiparent, char* name) {
     struct inode *ip, *next;
@@ -611,7 +611,7 @@ static struct inode* namex(char* path, int nameiparent, char* name) {
 }
 
 struct inode* namei(char* path) {
-    char name[DIRSIZ];
+    char name[DIR_NAME_MAX_SIZE];
     return namex(path, 0, name);
 }
 

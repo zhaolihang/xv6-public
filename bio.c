@@ -40,7 +40,6 @@ void binit(void) {
 
     initlock(&bcache.lock, "bcache");
 
-    //PAGEBREAK!
     // Create linked list of buffers
 
     // head <=> head  插入new  head <=> new <=> head

@@ -100,8 +100,8 @@ found:
         // Set up new context to start executing at forkret,
         // which returns to trapret.
         sp -= 4;    // 预留 返回点
-        *( uint* )sp =
-            ( uint )trapret;    // 中断返回点地址  forkret 会返回到trapret 去执行 然后 trapret执行一个iret 模拟中断返回从特权机0切换到3 进行任务
+            // 中断返回点地址  forkret 会返回到trapret 去执行 然后 trapret执行一个iret 模拟中断返回从特权机0切换到3 进行任务
+        *( uint* )sp = ( uint )trapret;
     }
 
     {
@@ -429,7 +429,6 @@ void sleep(void* chan, struct spinlock* lk) {
     }
 }
 
-//PAGEBREAK!
 // Wake up all processes sleeping on chan.
 // The ptable lock must be held.
 static void wakeup1(void* chan) {

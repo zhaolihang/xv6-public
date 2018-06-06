@@ -179,9 +179,7 @@ int fork1(void) {
     return pid;
 }
 
-//PAGEBREAK!
 // Constructors
-
 struct cmd* execcmd(void) {
     struct execcmd* cmd;
 
@@ -236,9 +234,8 @@ struct cmd* backcmd(struct cmd* subcmd) {
     cmd->cmd  = subcmd;
     return ( struct cmd* )cmd;
 }
-//PAGEBREAK!
-// Parsing
 
+// Parsing
 char whitespace[] = " \t\r\n\v";
 char symbols[]    = "<|>&;()";
 

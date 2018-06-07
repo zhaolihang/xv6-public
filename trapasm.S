@@ -28,5 +28,5 @@ trapret:
   popl %fs
   popl %es
   popl %ds
-  addl $0x8, %esp  # trapno and errcode
+  addl $0x8, %esp  # 跳过 trapno and errcode
   iret  # 返回到用户程序  (struct trapframe)(p->tf) 最高处也就是栈底包含返回点cs:eip

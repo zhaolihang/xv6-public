@@ -298,7 +298,6 @@ int wait(void) {
     }
 }
 
-//PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -337,8 +336,8 @@ void scheduler(void)    // no return
             */
             swtch(&(c->scheduler), p->context);    // 切换到进程p, 运行汇编代码swtch.S中
 
-            // p  return point
-            switch2kvm();    // p 被剥夺 继续执行 先切换回内核空间 这时tr中仍然是p 的tss
+            // p进程 return point
+            switch2kvm();    // p进程被剥夺 先切换回内核空间,这时tr中仍然是p的tss
 
             // Process is done running for now.
             // It should have changed its p->state before coming back.
@@ -474,7 +473,6 @@ int kill(int pid) {
     return -1;
 }
 
-//PAGEBREAK: 36
 // Print a process listing to console.  For debugging.
 // Runs when user types ^P on console.
 // No lock to avoid wedging a stuck machine further.

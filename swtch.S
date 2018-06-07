@@ -19,15 +19,15 @@ swtch:
   pushl %ebp
   pushl %ebx
   pushl %esi
-  pushl %edi # 压入内核栈中
+  pushl %edi # 压入内核栈中 构建一个context结构体
 
   # Switch stacks
-  movl %esp, (%eax) # c->scheduler = esp 保存内核的 scheduler() context
-  movl %edx, %esp   # esp = mycpu->context  用户进程的内核栈 mycpu->context最高处包含eip
+  movl %esp, (%eax) # c->scheduler = esp 设置scheduler函数的context
+  movl %edx, %esp   # esp = p->context 切换到用户进程的内核栈(0特权级栈) p->context 最高处包含进程当前的eip
 
   # Load new callee-save registers
   popl %edi
   popl %esi
   popl %ebx
   popl %ebp
-  ret # 直接返回就切换到了 context *new 新进程中去执行  利用ret 进行进程切换进程首次运行返回到 forkret 函数
+  ret      # popl %eip; 利用ret进行eip切换, 进程首次会返回到forkret函数

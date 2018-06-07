@@ -122,7 +122,7 @@ void         wakeup(void*);
 void         yield(void);
 
 // swtch.S
-void swtch(struct context**, struct context*);
+void swtch(struct context** old, struct context* new);
 
 // spinlock.c
 void acquire(struct spinlock*);

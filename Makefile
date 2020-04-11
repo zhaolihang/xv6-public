@@ -183,6 +183,7 @@ clean:
 	bootblock entryother initcode kernel xv6.img fs.img \
 	vectors.S \
 	$(USER_PROGS)
+.PHONY: clean #.PHONY含义 https://www.cnblogs.com/idorax/p/9306528.html
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so that disk image changes after first build are persistent until clean
 .PRECIOUS: %.o
